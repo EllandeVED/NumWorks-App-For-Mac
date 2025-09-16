@@ -8,4 +8,4 @@ INSTRUCTIONS:
 
 INFO:
 
--The "CompressedNumWorks_v23.3.4.zip" is a local version of the calculator stuck on the version 23.4.3.
+- The "CompressedNumWorks_v23.3.4.zip" is a local version of the calculator stuck on the version 23.4.3.
