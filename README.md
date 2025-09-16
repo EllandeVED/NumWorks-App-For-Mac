@@ -2,10 +2,10 @@ Hi, this is a small .app that serves as a NuworksApp for Mac.
 
 
 INSTRUCTIONS:
-- Download the zip
-- Unzip it
-- Move the newly created .app file to your application folder
+- Download the .app file
+- Move it to your application folder
+- (You may need to authorize the launching of the app in Settings/Privacy and Security because I don't have a registered Developer ID)
 
 INFO:
 
-- The "CompressedNumWorks_v23.3.4.zip" is a local version of the calculator stuck on the version 23.4.3.
+- The app is a "web view", that means you need internet to launch it
