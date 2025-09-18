@@ -1,1 +1,15 @@
+# Xcode
+DerivedData/
+build/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.dSYM
+# Workspaces user data
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+# macOS
 .DS_Store
