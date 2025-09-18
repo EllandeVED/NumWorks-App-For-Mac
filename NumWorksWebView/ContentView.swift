@@ -21,6 +21,18 @@ struct WindowConfigurator: NSViewRepresentable {
         let v = NSView(frame: .zero)
         DispatchQueue.main.async {
             if let win = v.window {
+                // Persist/restore window frame
+                win.setFrameAutosaveName("MainWindow") // optional built-in autosave
+                WindowFrameStore.restore(on: win)
+
+                NotificationCenter.default.addObserver(
+                    forName: NSWindow.didEndLiveResizeNotification, object: win, queue: .main
+                ) { _ in WindowFrameStore.save(win) }
+
+                NotificationCenter.default.addObserver(
+                    forName: NSWindow.didMoveNotification, object: win, queue: .main
+                ) { _ in WindowFrameStore.save(win) }
+                
                 let aspect = NSSize(width: Self.minContentSize.width, height: Self.minContentSize.height)
                 win.title = "NumWorks"
                 win.backgroundColor = .black
