@@ -1,0 +1,266 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 60;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1D1APP /* NumWorksWebViewApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D2APP /* NumWorksWebViewApp.swift */; };
+		1D1ASSETS /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1D2ASSETS /* Assets.xcassets */; };
+		1D1CONTENT /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D2CONTENT /* ContentView.swift */; };
+		1EB740F62E7C7D5C000FCE65 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 1EB740F52E7C7D5C000FCE65 /* KeyboardShortcuts */; };
+		1EB740F92E7C7D75000FCE65 /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 1EB740F82E7C7D75000FCE65 /* LaunchAtLogin */; };
+		1EB740FB2E7C7D9F000FCE65 /* Shortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EB740FA2E7C7D9C000FCE65 /* Shortcuts.swift */; };
+		1EB740FD2E7C7DC9000FCE65 /* StatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EB740FC2E7C7DC6000FCE65 /* StatusBarController.swift */; };
+		1EB740FF2E7C7EC5000FCE65 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EB740FE2E7C7EC3000FCE65 /* SettingsView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		1D2APP /* NumWorksWebViewApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NumWorksWebViewApp.swift; sourceTree = "<group>"; };
+		1D2ASSETS /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		1D2CONTENT /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		1D2INFO /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1D2PROJECT /* NumWorksWebView.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NumWorksWebView.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1EB740FA2E7C7D9C000FCE65 /* Shortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shortcuts.swift; sourceTree = "<group>"; };
+		1EB740FC2E7C7DC6000FCE65 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
+		1EB740FE2E7C7EC3000FCE65 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		1DFRAMEWORKS /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1EB740F92E7C7D75000FCE65 /* LaunchAtLogin in Frameworks */,
+				1EB740F62E7C7D5C000FCE65 /* KeyboardShortcuts in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1DPRODUCTS /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				1D2PROJECT /* NumWorksWebView.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		1DROOT = {
+			isa = PBXGroup;
+			children = (
+				1DSOURCE /* NumWorksWebView */,
+				1DPRODUCTS /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		1DSOURCE /* NumWorksWebView */ = {
+			isa = PBXGroup;
+			children = (
+				1D2APP /* NumWorksWebViewApp.swift */,
+				1D2CONTENT /* ContentView.swift */,
+				1D2ASSETS /* Assets.xcassets */,
+				1D2INFO /* Info.plist */,
+				1EB740FA2E7C7D9C000FCE65 /* Shortcuts.swift */,
+				1EB740FC2E7C7DC6000FCE65 /* StatusBarController.swift */,
+				1EB740FE2E7C7EC3000FCE65 /* SettingsView.swift */,
+			);
+			path = NumWorksWebView;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1DTARGET /* NumWorksWebView */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1DCONF /* Build configuration list for PBXNativeTarget "NumWorksWebView" */;
+			buildPhases = (
+				1DPHASESOURCES /* Sources */,
+				1DFRAMEWORKS /* Frameworks */,
+				1DPHASERESOURCES /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = NumWorksWebView;
+			productName = NumWorksWebView;
+			productReference = 1D2PROJECT /* NumWorksWebView.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		1DPROJECT /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					1DTARGET = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = 1DPROJCONF /* Build configuration list for PBXProject "NumWorksWebView" */;
+			compatibilityVersion = "Xcode 15.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 1DROOT;
+			packageReferences = (
+				1EB740F42E7C7D5C000FCE65 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
+				1EB740F72E7C7D75000FCE65 /* XCRemoteSwiftPackageReference "LaunchAtLogin" */,
+			);
+			productRefGroup = 1DPRODUCTS /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1DTARGET /* NumWorksWebView */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		1DPHASERESOURCES /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1D1ASSETS /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1DPHASESOURCES /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1EB740FF2E7C7EC5000FCE65 /* SettingsView.swift in Sources */,
+				1EB740FB2E7C7D9F000FCE65 /* Shortcuts.swift in Sources */,
+				1EB740FD2E7C7DC9000FCE65 /* StatusBarController.swift in Sources */,
+				1D1CONTENT /* ContentView.swift in Sources */,
+				1D1APP /* NumWorksWebViewApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		1DDEBUG /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = NumWorksWebView/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NumWorks;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.NumWorksWebView;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		1DRELEASE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = NumWorksWebView/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NumWorks;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.NumWorksWebView;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1DCONF /* Build configuration list for PBXNativeTarget "NumWorksWebView" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1DDEBUG /* Debug */,
+				1DRELEASE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1DPROJCONF /* Build configuration list for PBXProject "NumWorksWebView" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1DDEBUG /* Debug */,
+				1DRELEASE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		1EB740F42E7C7D5C000FCE65 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sindresorhus/KeyboardShortcuts";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.4.0;
+			};
+		};
+		1EB740F72E7C7D75000FCE65 /* XCRemoteSwiftPackageReference "LaunchAtLogin" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sindresorhus/LaunchAtLogin";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		1EB740F52E7C7D5C000FCE65 /* KeyboardShortcuts */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1EB740F42E7C7D5C000FCE65 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */;
+			productName = KeyboardShortcuts;
+		};
+		1EB740F82E7C7D75000FCE65 /* LaunchAtLogin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1EB740F72E7C7D75000FCE65 /* XCRemoteSwiftPackageReference "LaunchAtLogin" */;
+			productName = LaunchAtLogin;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 1DPROJECT /* Project object */;
+}
