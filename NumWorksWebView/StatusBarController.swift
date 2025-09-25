@@ -9,11 +9,14 @@ import AppKit
     func create() {
         guard statusItem == nil else { return }
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        if let img = NSImage(systemSymbolName: "n.square", accessibilityDescription: "NumWorks") {
+        if let img = NSImage(named: "MenuBarIcon") {
             img.isTemplate = true            // adopts menu bar color
+            img.size = NSSize(width: 18, height: 18)  // ensure it renders at status bar size
             item.button?.image = img
+            item.length = img.size.width - 3// slim hit box: icon width + small padding
         } else {
             item.button?.title = "N"
+            item.length = 22
         }
         item.button?.image?.isTemplate = true
         item.button?.target = self
@@ -60,12 +63,20 @@ import AppKit
             settingsItem.keyEquivalentModifierMask = [.command]  // ⌘ + ,
             settingsItem.target = self
 
+            let reloadItem = NSMenuItem(
+                title: "Reload",
+                action: #selector(reloadCalculator),
+                keyEquivalent: "r"
+            )
+            reloadItem.keyEquivalentModifierMask = [.command]
+            reloadItem.target = self
+
             let quitItem = NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q")
             quitItem.keyEquivalentModifierMask = [.command]
             quitItem.target = self
 
             let m = NSMenu()
-            m.items = [settingsItem, .separator(), quitItem]
+            m.items = [settingsItem, reloadItem, .separator(), quitItem]
             let pt = NSEvent.mouseLocation
             m.popUp(positioning: nil, at: pt, in: nil)
         } else {
@@ -76,6 +87,10 @@ import AppKit
     @objc private func openSettings() {
         NSApp.activate(ignoringOtherApps: true)
         NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
+    }
+
+    @objc private func reloadCalculator(_ sender: Any? = nil) {
+        NotificationCenter.default.post(name: .reloadCalculatorNow, object: nil)
     }
 }
 
@@ -92,3 +107,4 @@ enum WindowFrameStore {
         window.setFrame(frame, display: false)
     }
 }
+

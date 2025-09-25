@@ -72,6 +72,25 @@ struct WebView: NSViewRepresentable {
         view.wantsLayer = true
         view.layerContentsRedrawPolicy = .duringViewResize
 
+        view.navigationDelegate = context.coordinator
+
+        // Observe explicit load/reload requests
+        NotificationCenter.default.addObserver(
+            forName: .loadCalculatorNow,
+            object: nil,
+            queue: .main
+        ) { [weak coordinator = context.coordinator] _ in
+            coordinator?.loadIfNeeded()
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: .reloadCalculatorNow,
+            object: nil,
+            queue: .main
+        ) { [weak view] _ in
+            view?.reload()
+        }
+
         context.coordinator.webView = view
         context.coordinator.startMonitoringAndLoadWhenOnline()
 
@@ -81,7 +100,7 @@ struct WebView: NSViewRepresentable {
 
     func updateNSView(_ nsView: WKWebView, context: Context) {}
 
-    final class Coordinator: NSObject {
+    final class Coordinator: NSObject, WKNavigationDelegate {
         weak var webView: WKWebView?
         private let monitor = NWPathMonitor()
         private let queue = DispatchQueue(label: "net.path.monitor")
@@ -98,30 +117,35 @@ struct WebView: NSViewRepresentable {
                 let online = (path.status == .satisfied)
                 DispatchQueue.main.async {
                     NotificationCenter.default.post(name: .netStatusChanged, object: online)
-                    if online {
-                        self.loadIfNeededOrReload()
+                    if online && !self.didLoadOnce {
+                        self.loadIfNeeded()
                     }
                 }
             }
             monitor.start(queue: queue)
         }
 
-        private func loadIfNeededOrReload() {
+        func loadIfNeeded() {
             guard let wv = webView, let url = URL(string: urlString) else { return }
-            // First time or after offline: load
             if !didLoadOnce {
                 didLoadOnce = true
-                wv.load(URLRequest(url: url, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 30))
-            } else {
-                // If user opened app offline, WK may show an error page; ensure a clean reload on regain
-                wv.reload()
+                let req = URLRequest(url: url, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 30)
+                wv.load(req)
             }
+        }
+
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            // Announce first successful load and stop monitoring so we never reload again
+            NotificationCenter.default.post(name: .calculatorDidLoad, object: nil)
+            monitor.cancel()
+            monitor.pathUpdateHandler = nil
         }
     }
 }
 
 struct ContentView: View {
     @State private var isOnline = true
+    @State private var hasLoadedEver = false
 
     var body: some View {
         ZStack {
@@ -130,7 +154,7 @@ struct ContentView: View {
                 .ignoresSafeArea()
                 .opacity(isOnline ? 1 : 0)
 
-            if !isOnline {
+            if !hasLoadedEver && !isOnline {
                 VStack(spacing: 8) {
                     ProgressView()
                     Text("Waiting for internet…").font(.headline)
@@ -140,7 +164,13 @@ struct ContentView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .netStatusChanged)) { note in
-            if let online = note.object as? Bool { isOnline = online }
+            if let online = note.object as? Bool, !hasLoadedEver {
+                isOnline = online
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .calculatorDidLoad)) { _ in
+            hasLoadedEver = true
+            isOnline = true   // lock UI in 'online' state to prevent overlay
         }
     }
 }
