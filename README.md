@@ -1,7 +1,7 @@
 (For version v1.4)
 Hi, this is a small .app that serves as a NuworksApp for Mac.
 
-INSTRUCTIONS:
+INSTALLATION INSTRUCTIONS:
 
 - Download the .zip file from the releases
 - Move the resulting .app to your application folder
