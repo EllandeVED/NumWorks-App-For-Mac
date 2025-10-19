@@ -20,79 +20,81 @@ struct NumWorksWebViewApp: App {
         WindowGroup {
             ContentView()
         }
+        
         Settings {
             SettingsView(appDelegate: appDelegate)
                 .frame(width: 460)
-        }
-    }
-
-    var commands: some Commands {
-        CommandGroup(replacing: .appSettings) {
-            Button("Settings…") {
-                (NSApp.delegate as? AppDelegate)?.openSettings()
-            }
-            .keyboardShortcut(",", modifiers: .command)
         }
     }
 }
 
 @MainActor final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private let status = StatusBarController()
-
+    
     // +++ Simple online state you can also bind to UI if you want a “waiting” screen
     @Published var isOnline: Bool = true
-
+    
     // Track whether the calculator has ever loaded successfully (to avoid later auto-reloads)
     @Published var hasLoadedEver: Bool = false
-
+    
     // +++ Network monitor
     private let pathMonitor = NWPathMonitor()
     private let pathQueue = DispatchQueue(label: "NetPathMonitor")
     private var wasOnline: Bool = false
     // When true, all connectivity monitoring is permanently disabled for this run
     private var connectivityChecksDisabled: Bool = false
+    
+    @Published var menuIconEnabled: Bool = false
+    @Published var openInCurrentDesktop: Bool = true
 
-    @Published var menuIconEnabled: Bool =
-        (UserDefaults.standard.object(forKey: "MenuIconEnabled") as? Bool) ?? false
-
+    override init() {
+        super.init()
+        // Register first-run defaults for all settings
+        UserDefaults.standard.register(defaults: [
+            "MenuIconEnabled": true,            // show menu bar icon by default
+            "OpenInCurrentDesktop": true,       // open in current desktop by default
+            "HasInitializedShortcut": false     // no global shortcut recorded by default
+        ])
+        // Ensure published properties reflect the (now-registered) defaults
+        self.menuIconEnabled = UserDefaults.standard.bool(forKey: "MenuIconEnabled")
+        self.openInCurrentDesktop = UserDefaults.standard.bool(forKey: "OpenInCurrentDesktop")
+    }
+    
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Ensure status item matches stored preference
         toggleMenuIcon(menuIconEnabled)
-
-        // First-run only: ensure no default shortcut is recorded
+        
+        // First-run only: set a default shortcut (⌥N)
         let hasInitShortcut = UserDefaults.standard.bool(forKey: "HasInitializedShortcut")
         if !hasInitShortcut {
-            KeyboardShortcuts.reset(.toggleWindow)
+            KeyboardShortcuts.setShortcut(.init(.n, modifiers: [.option]), for: .toggleWindow)
             UserDefaults.standard.set(true, forKey: "HasInitializedShortcut")
         }
-
+        
         // Register handler for global shortcut if user sets one
         KeyboardShortcuts.onKeyUp(for: .toggleWindow) { [weak self] in
             self?.toggleMainWindow()
         }
-
+        
         // Mark once the calculator has successfully loaded (prevents future auto-reloads / waiting screen)
         NotificationCenter.default.addObserver(forName: .calculatorDidLoad, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.disableConnectivityChecks()
             }
         }
-
+        
         // +++ Start monitoring connectivity
         startNetworkMonitoring()
-
-        // Capture ⌘, locally even when the menu is not first
-        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            // Only when exactly Command + Comma is pressed (no other modifiers)
-            let wantsCommand = event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command
-            if wantsCommand, event.characters == "," {
-                self?.openSettings()
-                return nil  // consume the event so it doesn't bubble
-            }
-            return event
+        
+        
+        // Check GitHub Releases for a newer version (silent if up-to-date or offline)
+        UpdateChecker.shared.checkOnLaunch()
+        
+        DispatchQueue.main.async { [weak self] in
+            self?.applySpaceBehavior()
         }
     }
-
+    
     // Permanently disable all connectivity monitoring & UI flips after first successful load
     private func disableConnectivityChecks() {
         guard !connectivityChecksDisabled else { return }
@@ -103,7 +105,7 @@ struct NumWorksWebViewApp: App {
         pathMonitor.cancel()
         pathMonitor.pathUpdateHandler = nil
     }
-
+    
     private func startNetworkMonitoring() {
         // Do not start monitoring if we already loaded once or if disabled
         if connectivityChecksDisabled || hasLoadedEver { return }
@@ -117,7 +119,7 @@ struct NumWorksWebViewApp: App {
                 if !self.hasLoadedEver {
                     self.isOnline = nowOnline
                 }
-
+                
                 // Only request initial load on the first offline→online transition;
                 // never auto-trigger loads after the calculator has loaded once.
                 if nowOnline && !self.wasOnline && !self.hasLoadedEver {
@@ -128,7 +130,7 @@ struct NumWorksWebViewApp: App {
         }
         pathMonitor.start(queue: pathQueue)
     }
-
+    
     func toggleMenuIcon(_ enabled: Bool) {
         if enabled {
             status.onShowApp = { [weak self] in self?.toggleMainWindow() }
@@ -137,37 +139,115 @@ struct NumWorksWebViewApp: App {
             status.destroy()
         }
     }
-
+    
+    private func mainContentWindow() -> NSWindow? {
+        // Prefer the window we tagged in WindowConfigurator
+        if let w = NSApp.windows.first(where: { $0.frameAutosaveName == "MainWindow" }) {
+            return w
+        }
+        // Fallback to the first titled window
+        return NSApp.windows.first(where: { $0.styleMask.contains(.titled) }) ?? NSApp.windows.first
+    }
+    
+    private func applySpaceBehavior() {
+        guard let win = mainContentWindow() else { return }
+        var behavior = win.collectionBehavior
+        if openInCurrentDesktop {
+            behavior.insert(.moveToActiveSpace)
+            behavior.remove(.canJoinAllSpaces)
+        } else {
+            behavior.remove(.moveToActiveSpace)
+        }
+        win.collectionBehavior = behavior
+    }
+    
+    func setOpenInCurrentDesktop(_ newValue: Bool) {
+        openInCurrentDesktop = newValue
+        UserDefaults.standard.set(newValue, forKey: "OpenInCurrentDesktop")
+        applySpaceBehavior()
+    }
+    
+    private func isOnAnyScreen(_ frame: NSRect) -> Bool {
+        return NSScreen.screens.contains { $0.visibleFrame.intersects(frame) }
+    }
+    
+    
     func showMainWindow() {
-        NSApp.activate(ignoringOtherApps: true)
-        if let win = NSApp.windows.first {
-            WindowFrameStore.restore(on: win)
-            win.makeKeyAndOrderFront(nil)
+        if let win = mainContentWindow() {
+            showOnActiveSpace(win)
+        } else {
+            NSApp.activate(ignoringOtherApps: true)
         }
     }
-
+    
     func toggleMainWindow() {
-        if let win = NSApp.windows.first {
-            if win.isVisible {
-                win.orderOut(nil)
-            } else {
-                NSApp.activate(ignoringOtherApps: true)
-                WindowFrameStore.restore(on: win)
-                win.makeKeyAndOrderFront(nil)
-            }
+        let isFrontmost = NSApp.isActive
+        guard let win = mainContentWindow() else {
+            // No window yet: just activate and let SwiftUI create it
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+        
+        if !isFrontmost {
+            // App not frontmost: bring to front and show
+            showOnActiveSpace(win)
+            return
+        }
+        
+        // App is frontmost
+        if win.isVisible {
+            // Window visible → hide it
+            win.orderOut(nil)
+        } else {
+            // Window not visible → show it
+            showOnActiveSpace(win)
         }
     }
-
+    
     func setMenuIconEnabled(_ newValue: Bool) {
         menuIconEnabled = newValue
         UserDefaults.standard.set(newValue, forKey: "MenuIconEnabled")
         toggleMenuIcon(newValue)
     }
-
-    @objc func openSettings() {
-        // Opens the SwiftUI Settings scene window and brings app to front
-        NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
-        NSApp.activate(ignoringOtherApps: true)
-    }
     
+    
+    // Show the window on the active Space and ensure it's frontmost and visible
+    private func showOnActiveSpace(_ win: NSWindow) {
+        // Ensure the correct Space behavior is applied
+        applySpaceBehavior()
+        if openInCurrentDesktop { win.collectionBehavior.insert(.moveToActiveSpace) }
+        
+        // Normalize window level in case it was altered
+        win.level = .normal
+        
+        // Activate, restore, and bring to front
+        NSRunningApplication.current.activate(options: [.activateIgnoringOtherApps, .activateAllWindows])
+        WindowFrameStore.restore(on: win)
+        if win.isMiniaturized { win.deminiaturize(nil) }
+        win.orderFrontRegardless()
+        win.makeKeyAndOrderFront(nil)
+        
+        // After potential Space animation completes, assert frontmost again.
+        // This avoids the case where the window ends up behind other apps when hopping back to Desktop 1.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+            NSRunningApplication.current.activate(options: [.activateIgnoringOtherApps, .activateAllWindows])
+            if !win.isKeyWindow || !win.isVisible {
+                win.orderFrontRegardless()
+                win.makeKeyAndOrderFront(nil)
+            }
+        }
+        
+        // If the restored frame ended up off-screen, recenter and bring forward again.
+        if !isOnAnyScreen(win.frame), let screen = NSScreen.main {
+            let size = win.frame.size
+            let origin = NSPoint(
+                x: screen.visibleFrame.midX - size.width / 2,
+                y: screen.visibleFrame.midY - size.height / 2
+            )
+            win.setFrame(NSRect(origin: origin, size: size), display: false)
+            win.orderFrontRegardless()
+            win.makeKeyAndOrderFront(nil)
+        }
+    }
+
 }

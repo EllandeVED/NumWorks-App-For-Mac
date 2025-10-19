@@ -10,6 +10,7 @@
 		1D1APP /* NumWorksWebViewApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D2APP /* NumWorksWebViewApp.swift */; };
 		1D1ASSETS /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1D2ASSETS /* Assets.xcassets */; };
 		1D1CONTENT /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D2CONTENT /* ContentView.swift */; };
+		1E494DA22EA566020073D430 /* UpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E494DA12EA565FF0073D430 /* UpdateChecker.swift */; };
 		1EB740F62E7C7D5C000FCE65 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 1EB740F52E7C7D5C000FCE65 /* KeyboardShortcuts */; };
 		1EB740F92E7C7D75000FCE65 /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 1EB740F82E7C7D75000FCE65 /* LaunchAtLogin */; };
 		1EB740FB2E7C7D9F000FCE65 /* Shortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EB740FA2E7C7D9C000FCE65 /* Shortcuts.swift */; };
@@ -23,6 +24,7 @@
 		1D2CONTENT /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		1D2INFO /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		1D2PROJECT /* NumWorksWebView.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NumWorksWebView.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1E494DA12EA565FF0073D430 /* UpdateChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateChecker.swift; sourceTree = "<group>"; };
 		1EB740FA2E7C7D9C000FCE65 /* Shortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shortcuts.swift; sourceTree = "<group>"; };
 		1EB740FC2E7C7DC6000FCE65 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
 		1EB740FE2E7C7EC3000FCE65 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -60,6 +62,7 @@
 		1DSOURCE /* NumWorksWebView */ = {
 			isa = PBXGroup;
 			children = (
+				1E494DA12EA565FF0073D430 /* UpdateChecker.swift */,
 				1D2APP /* NumWorksWebViewApp.swift */,
 				1D2CONTENT /* ContentView.swift */,
 				1D2ASSETS /* Assets.xcassets */,
@@ -142,6 +145,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1E494DA22EA566020073D430 /* UpdateChecker.swift in Sources */,
 				1EB740FF2E7C7EC5000FCE65 /* SettingsView.swift in Sources */,
 				1EB740FB2E7C7D9F000FCE65 /* Shortcuts.swift in Sources */,
 				1EB740FD2E7C7DC9000FCE65 /* StatusBarController.swift in Sources */,
@@ -159,8 +163,8 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
-				DEVELOPMENT_TEAM = "";
+				CURRENT_PROJECT_VERSION = 5;
+				DEVELOPMENT_TEAM = 6C2PG6C5FF;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = NumWorksWebView/Info.plist;
@@ -171,7 +175,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.NumWorksWebView;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -186,8 +190,8 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
-				DEVELOPMENT_TEAM = "";
+				CURRENT_PROJECT_VERSION = 5;
+				DEVELOPMENT_TEAM = 6C2PG6C5FF;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = NumWorksWebView/Info.plist;
@@ -198,7 +202,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.NumWorksWebView;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

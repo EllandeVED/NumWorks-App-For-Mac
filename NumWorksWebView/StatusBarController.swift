@@ -36,7 +36,13 @@ import AppKit
     @objc private func quit() { NSApp.terminate(nil) }
     @objc private func toggleFromStatusItem() {
         if let app = (NSApp.delegate as? AppDelegate) {
-            app.toggleMainWindow()
+            if app.hasLoadedEver {
+                app.toggleMainWindow()
+            } else {
+                // Pre-first-load: only show once the click finishes,
+                // to avoid the status button getting stuck highlighted.
+                DispatchQueue.main.async { app.showMainWindow() }
+            }
             return
         }
         // Fallbacks: try the callback, then direct window toggle
@@ -77,8 +83,9 @@ import AppKit
 
             let m = NSMenu()
             m.items = [settingsItem, reloadItem, .separator(), quitItem]
-            let pt = NSEvent.mouseLocation
-            m.popUp(positioning: nil, at: pt, in: nil)
+            if let btn = statusItem?.button {
+                m.popUp(positioning: nil, at: NSPoint(x: 0, y: btn.bounds.height), in: btn)
+            }
         } else {
             toggleFromStatusItem()
         }
