@@ -43,10 +43,7 @@ final class UpdateChecker {
                 let remote = try await fetchLatest()
                 try handle(remote: remote, userInitiated: true)
             } catch {
-                showInfoAlert(
-                    title: "Can’t Check for Updates",
-                    text: "Make sure you’re connected to the internet and try again."
-                )
+                showNetworkErrorAlert(error)
             }
         }
     }
@@ -56,6 +53,7 @@ final class UpdateChecker {
     private struct GitHubRelease: Decodable {
         let tag_name: String
         let html_url: String?
+        let body: String?
     }
 
     private func fetchLatest() async throws -> GitHubRelease {
@@ -63,7 +61,12 @@ final class UpdateChecker {
         req.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         let (data, resp) = try await URLSession.shared.data(for: req)
         guard let http = resp as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
-            throw URLError(.badServerResponse)
+            if let http = resp as? HTTPURLResponse {
+                let err = NSError(domain: "HTTPStatus", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey: "Server returned status code \(http.statusCode)"])
+                throw err
+            } else {
+                throw URLError(.badServerResponse)
+            }
         }
         return try JSONDecoder().decode(GitHubRelease.self, from: data)
     }
@@ -76,7 +79,8 @@ final class UpdateChecker {
 
         if isRemote(remoteTag, newerThan: current) {
             lastAlertedVersion = remoteTag
-            showUpdateAlert(remoteTag: remoteTag, page: URL(string: remote.html_url ?? "") ?? releasesPage)
+            let notes = remote.body?.trimmingCharacters(in: .whitespacesAndNewlines)
+            showUpdateAlert(remoteTag: remoteTag, page: URL(string: remote.html_url ?? "") ?? releasesPage, notes: notes)
         } else if userInitiated {
             showInfoAlert(title: "You’re Up To Date", text: "You have the latest version (\(current)).")
         }
@@ -101,40 +105,180 @@ final class UpdateChecker {
         return false
     }
 
+    // MARK: - Release Notes Font Preferences (macOS 15+)
+    private enum RNFontKeys {
+        static let name = "ReleaseNotesFontName"
+        static let size = "ReleaseNotesFontSize"
+        static let mono = "ReleaseNotesFontMonospaced"
+    }
+
+    /// Set a custom font for the release notes viewer. Pass `nil` to keep current for a given parameter.
+    static func setReleaseNotesFont(name: String? = nil, size: CGFloat? = nil, monospaced: Bool? = nil) {
+        let d = UserDefaults.standard
+        if let name { d.set(name, forKey: RNFontKeys.name) }
+        if let size { d.set(size, forKey: RNFontKeys.size) }
+        if let monospaced { d.set(monospaced, forKey: RNFontKeys.mono) }
+    }
+
+    /// Reset to defaults.
+    static func resetReleaseNotesFont() {
+        let d = UserDefaults.standard
+        d.removeObject(forKey: RNFontKeys.name)
+        d.removeObject(forKey: RNFontKeys.size)
+        d.removeObject(forKey: RNFontKeys.mono)
+    }
+
+    /// Current configured font for release notes.
+    static func currentReleaseNotesFont() -> NSFont {
+        let d = UserDefaults.standard
+        let defaultSize: CGFloat = 12
+        let size = d.object(forKey: RNFontKeys.size) as? CGFloat ?? defaultSize
+        let useMono = d.object(forKey: RNFontKeys.mono) as? Bool ?? false
+        if let name = d.string(forKey: RNFontKeys.name), let custom = NSFont(name: name, size: size) {
+            return custom
+        }
+        if useMono { return .monospacedSystemFont(ofSize: size, weight: .regular) }
+        return .systemFont(ofSize: size)
+    }
+
     // MARK: - Alerts
 
-    private func showUpdateAlert(remoteTag: String, page: URL) {
+    private func showUpdateAlert(remoteTag: String, page: URL, notes: String?) {
         let alert = NSAlert()
         alert.messageText = "A New Version is Available"
         alert.informativeText = "Version \(remoteTag) is available. Would you like to download it?"
         alert.alertStyle = .informational
         alert.addButton(withTitle: "Download")
         alert.addButton(withTitle: "Later")
-        
-        // Create small gray text as accessory view
-        let noteLabel = NSTextField(labelWithString: "Make sure you delete the old app before downloading the new one.")
-        noteLabel.font = .systemFont(ofSize: 10)
-        noteLabel.textColor = .secondaryLabelColor
-        noteLabel.alignment = .center
-        noteLabel.preferredMaxLayoutWidth = 240
-        noteLabel.lineBreakMode = .byWordWrapping
-        
-        // Reduce spacing with a container view
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 240, height: 30))
-        noteLabel.frame = NSRect(x: 0, y: 0, width: 240, height: 30)
-        container.addSubview(noteLabel)
+
+        // ---- Build accessory view using explicit frames (NSAlert often ignores Auto Layout) ----
+        let totalWidth: CGFloat = 420
+        let padding: CGFloat = 12
+        let spacing: CGFloat = 8
+        let innerWidth = totalWidth - 2 * padding
+
+        // Small gray reminder label (wrapped)
+        let reminder = "Make sure you delete the old app before downloading the new one."
+        let reminderLabel = NSTextField(labelWithString: reminder)
+        reminderLabel.font = .systemFont(ofSize: 10)
+        reminderLabel.textColor = .secondaryLabelColor
+        reminderLabel.alignment = .center
+        reminderLabel.lineBreakMode = .byWordWrapping
+
+        // Measure reminder height
+        let remAttr: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 10)]
+        let remBounds = (reminder as NSString).boundingRect(
+            with: NSSize(width: innerWidth, height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: remAttr
+        )
+        let reminderHeight = ceil(remBounds.height)
+
+        // Optional release notes (Markdown/plain) in a scroll view
+        let notesHeight: CGFloat = (notes?.isEmpty == false) ? 200 : 0
+
+        // Compute total height
+        let totalHeight: CGFloat = padding + reminderHeight + (notesHeight > 0 ? spacing + notesHeight : 0) + padding
+
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: totalWidth, height: totalHeight))
+
+        // Place reminder label
+        var cursorY = totalHeight - padding - reminderHeight
+        reminderLabel.frame = NSRect(x: padding, y: cursorY, width: innerWidth, height: reminderHeight)
+        container.addSubview(reminderLabel)
+
+        // Add notes if present
+        if let notes, !notes.isEmpty {
+            cursorY -= (spacing + notesHeight)
+            let scrollFrame = NSRect(x: padding, y: cursorY, width: innerWidth, height: notesHeight)
+            let scrollView = NSScrollView(frame: scrollFrame)
+            scrollView.hasVerticalScroller = true
+            scrollView.hasHorizontalScroller = false
+            scrollView.borderType = .bezelBorder
+            scrollView.autohidesScrollers = true
+
+            let textView = NSTextView(frame: NSRect(x: 0, y: 0, width: innerWidth, height: notesHeight))
+            textView.isEditable = false
+            textView.isSelectable = true
+            textView.drawsBackground = false
+            textView.textContainerInset = NSSize(width: 6, height: 8)
+            textView.textContainer?.lineFragmentPadding = 4
+
+            // Normalize line endings first
+            var normalized = notes.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
+            while normalized.contains("\n\n\n") { normalized = normalized.replacingOccurrences(of: "\n\n\n", with: "\n\n") }
+
+            let font = Self.currentReleaseNotesFont()
+
+            // Detect a simple list (bulleted or numbered). For those, keep plain text so hyphens/numbers remain visible.
+            let lines = normalized.split(separator: "\n", omittingEmptySubsequences: false)
+            let isSimpleList = lines.allSatisfy { line in
+                let s = line.trimmingCharacters(in: .whitespaces)
+                if s.isEmpty { return true }
+                if s.hasPrefix("-") || s.hasPrefix("*") { return true }
+                // Numbered list like "1. Thing"
+                if let dotIndex = s.firstIndex(of: "."), dotIndex > s.startIndex {
+                    let digits = s[..<dotIndex]
+                    return digits.allSatisfy({ $0.isNumber }) && s[s.index(after: dotIndex)] == " "
+                }
+                return false
+            }
+
+            if isSimpleList {
+                // Preserve the literal bullets/numbers so it appears exactly as authored
+                textView.string = normalized
+                textView.font = font
+                textView.textColor = .labelColor
+            } else if let attributed = try? AttributedString(markdown: normalized) {
+                // Rich Markdown rendering for non-trivial notes
+                let nsAttr = NSAttributedString(attributed)
+                textView.textStorage?.setAttributedString(nsAttr)
+                textView.textStorage?.addAttributes([
+                    .font: font,
+                    .foregroundColor: NSColor.labelColor
+                ], range: NSRange(location: 0, length: textView.textStorage?.length ?? 0))
+            } else {
+                // Fallback to plain text
+                textView.string = normalized
+                textView.font = font
+                textView.textColor = .labelColor
+            }
+
+            textView.typingAttributes = [
+                .font: font,
+                .foregroundColor: NSColor.labelColor
+            ]
+
+            scrollView.documentView = textView
+            container.addSubview(scrollView)
+        }
+
         alert.accessoryView = container
-        
+
         if alert.runModal() == .alertFirstButtonReturn {
             NSWorkspace.shared.open(page)
         }
     }
-    
+
     private func showInfoAlert(title: String, text: String) {
         let alert = NSAlert()
         alert.messageText = title
         alert.informativeText = text
         alert.alertStyle = .informational
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
+    }
+
+    private func showNetworkErrorAlert(_ error: Error) {
+        let ns = error as NSError
+        let code = ns.code
+        let domain = ns.domain
+        let message = ns.localizedDescription
+
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "Can’t Check for Updates"
+        alert.informativeText = "Make sure you’re connected to the internet and try again.\n\nError: \(domain) (code \(code))\n\(message)"
         alert.addButton(withTitle: "OK")
         alert.runModal()
     }

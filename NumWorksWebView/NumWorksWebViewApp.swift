@@ -220,21 +220,26 @@ struct NumWorksWebViewApp: App {
         // Normalize window level in case it was altered
         win.level = .normal
         
-        // Activate, restore, and bring to front
-        NSRunningApplication.current.activate(options: [.activateIgnoringOtherApps, .activateAllWindows])
+        // Activate, restore, and bring to front (macOS 14+ safe)
+        NSApplication.shared.unhide(nil)
+        NSApplication.shared.activate(ignoringOtherApps: false)
+
         WindowFrameStore.restore(on: win)
         if win.isMiniaturized { win.deminiaturize(nil) }
-        win.orderFrontRegardless()
+
+        // Ensure the window is on the current Space and briefly float it to avoid sitting behind the current front app
+        win.collectionBehavior.insert(.moveToActiveSpace)
+        let originalLevel = win.level
+        win.level = .floating
         win.makeKeyAndOrderFront(nil)
-        
-        // After potential Space animation completes, assert frontmost again.
-        // This avoids the case where the window ends up behind other apps when hopping back to Desktop 1.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-            NSRunningApplication.current.activate(options: [.activateIgnoringOtherApps, .activateAllWindows])
+
+        // After potential Space animation completes, assert frontmost again and restore original level.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            NSApplication.shared.unhide(nil)
             if !win.isKeyWindow || !win.isVisible {
-                win.orderFrontRegardless()
                 win.makeKeyAndOrderFront(nil)
             }
+            win.level = originalLevel
         }
         
         // If the restored frame ended up off-screen, recenter and bring forward again.

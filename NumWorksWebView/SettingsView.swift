@@ -53,6 +53,26 @@ struct SettingsView: View {
                 }
                 .frame(maxWidth: .infinity)
 
+
+
+                GroupBox("Desktop") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Toggle(
+                            "Open in current desktop",
+                            isOn: Binding(
+                                get: { appDelegate.openInCurrentDesktop },
+                                set: { appDelegate.setOpenInCurrentDesktop($0) }
+                            )
+                        )
+                        Text("If off, the window stays on the desktop where you left it.")
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 8)
+                }
+                .frame(maxWidth: .infinity)
+                
                 // MARK: About
                 GroupBox("About") {
                     VStack(alignment: .leading, spacing: 8) {
@@ -75,24 +95,6 @@ struct SettingsView: View {
                     }
                     .padding(.vertical, 8)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .frame(maxWidth: .infinity)
-
-                GroupBox("Desktop") {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Toggle(
-                            "Open in current desktop",
-                            isOn: Binding(
-                                get: { appDelegate.openInCurrentDesktop },
-                                set: { appDelegate.setOpenInCurrentDesktop($0) }
-                            )
-                        )
-                        Text("If off, the window stays on the desktop where you left it.")
-                            .foregroundColor(.secondary)
-                            .font(.caption)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 8)
                 }
                 .frame(maxWidth: .infinity)
                 
