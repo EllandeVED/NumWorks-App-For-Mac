@@ -2,6 +2,9 @@
 
 Hi, this is a small .app that serves as a NuworksApp for Mac.
 
+<img width="360" height="700" alt="image" src="https://github.com/user-attachments/assets/80a184c2-ce5f-40b3-801d-ce7d53c13480" />
+
+
 INSTALLATION INSTRUCTIONS:
 
 - Download the .zip file from the releases
@@ -23,3 +26,5 @@ INFO:
 
 - You need internet at least once to load the calculator after you launch it.
 - To access the settings of the app, go on the top left of you screen in "NumWorksApp" and then go in "settings". 
+
+
