@@ -2,7 +2,8 @@
 
 Hi, this is a small .app that serves as a NuworksApp for Mac.
 
-<img width="360" height="700" alt="image" src="https://github.com/user-attachments/assets/80a184c2-ce5f-40b3-801d-ce7d53c13480" />
+<img width="360" height="700" alt="image" src="https://github.com/user-attachments/assets/80a184c2-ce5f-40b3-801d-ce7d53c13480" /> <img width="468" height="497" alt="image" src="https://github.com/user-attachments/assets/5fa6ffbe-cb8d-4392-913a-c4426ea45d2c" />
+
 
 
 INSTALLATION INSTRUCTIONS:
