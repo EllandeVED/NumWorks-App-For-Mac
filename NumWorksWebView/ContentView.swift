@@ -155,15 +155,50 @@ struct ContentView: View {
             WindowConfigurator().frame(width: 0, height: 0)
             WebView(urlString: "https://www.numworks.com/simulator/embed/")
                 .ignoresSafeArea()
-                .opacity(isOnline ? 1 : 0)
+                .opacity(appDelegate.showWaitingScreen ? 0 : 1)
 
-            if !hasLoadedEver && !isOnline {
-                VStack(spacing: 8) {
-                    ProgressView()
-                    Text("Waiting for internet…").font(.headline)
-                    Text("The calculator will load automatically.").font(.subheadline).opacity(0.7)
+            if appDelegate.showWaitingScreen {
+                // WAITING OVERLAY (full-screen, perfectly centered)
+                ZStack {
+                    Color.black.ignoresSafeArea()
+                    
+                    VStack(spacing: 14) {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                        
+                        Text(isOnline ? "Loading calculator…" : "Waiting for internet…")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(.white)
+                            .multilineTextAlignment(.center)
+                        
+                        Text("The calculator will load automatically.\nIf it seems stuck, try reloading the calculator.")
+                            .font(.system(size: 15))
+                            .foregroundColor(Color.white.opacity(0.85))
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: 360)
+                        
+                        if !isOnline {
+                            Text("No internet detected")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(Color.white.opacity(0.7))
+                                .multilineTextAlignment(.center)
+                        }
+                        
+                        Button {
+                            NotificationCenter.default.post(name: .reloadCalculatorNow, object: nil)
+                        } label: {
+                            Text("Reload calculator")
+                                .font(.system(size: 13, weight: .semibold))
+                                .padding(.horizontal, 12).padding(.vertical, 6)
+                                .background(Color.white.opacity(0.12))
+                                .cornerRadius(8)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, 4)
+                    }
+                    // Make the stack occupy the whole window and center its contents
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                 }
-                .padding()
             }
             if appDelegate.showPinIcon && (appDelegate.pinIconPlacement == .onApp || appDelegate.pinIconPlacement == .both) {
                 HStack { // padding lives outside the hit box

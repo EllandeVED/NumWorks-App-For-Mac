@@ -42,10 +42,13 @@ extension KeyboardShortcuts.Name {
     // Track whether the calculator has ever loaded successfully (to avoid later auto-reloads)
     @Published var hasLoadedEver: Bool = false
 
-    // Show a loading indicator when online but calculator hasn't loaded yet
-    @Published var isLoadingSlow: Bool = false
-    private var slowLoadWork: DispatchWorkItem?
-    private let slowLoadDelay: TimeInterval = 2.0
+    // While true, ContentView should display a full-bleed waiting screen.
+    // If `isOnline` is false during this time, show a small "No internet detected" notice on that screen.
+    // When `.calculatorDidLoad` fires, this flag flips to false and connectivity checks are stopped.
+    @Published var showWaitingScreen: Bool = true
+    
+    // Track whether we're currently attempting to load the calculator (prevents spam reloads)
+    @Published var isAttemptingInitialLoad: Bool = false
     
     // +++ Network monitor
     private let pathMonitor = NWPathMonitor()
@@ -105,18 +108,37 @@ extension KeyboardShortcuts.Name {
         // Mark once the calculator has successfully loaded (prevents future auto-reloads / waiting screen)
         NotificationCenter.default.addObserver(forName: .calculatorDidLoad, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor [weak self] in
-                self?.cancelSlowLoadDetection()
-                self?.disableConnectivityChecks()
+                guard let self else { return }
+                // Hide waiting screen and permanently stop connectivity checks
+                self.showWaitingScreen = false
+                self.status.setLoadingOverlay(false)
+                self.isAttemptingInitialLoad = false
+                self.disableConnectivityChecks()
+            }
+        }
+
+        NotificationCenter.default.addObserver(forName: .reloadCalculatorNow, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                // Re-enable monitoring for this reload cycle
+                self.connectivityChecksDisabled = false
+                self.hasLoadedEver = false
+                self.showWaitingScreen = true
+                self.status.setLoadingOverlay(true)
+                self.isAttemptingInitialLoad = false
+
+                // Restart monitoring and trigger a load if currently online
+                self.startNetworkMonitoring()
+                if self.isOnline {
+                    NotificationCenter.default.post(name: .loadCalculatorNow, object: nil)
+                }
             }
         }
         
         // +++ Start monitoring connectivity
         startNetworkMonitoring()
-
-        // If we haven't loaded yet, arm slow-load indicator right away (will auto-cancel on load)
-        if !hasLoadedEver && !connectivityChecksDisabled {
-            startSlowLoadDetectionIfNeeded()
-        }
+        showWaitingScreen = true
+        status.setLoadingOverlay(true)
 
         // Check GitHub Releases for a newer version (silent if up-to-date or offline)
         UpdateChecker.shared.checkOnLaunch()
@@ -130,63 +152,53 @@ extension KeyboardShortcuts.Name {
     private func disableConnectivityChecks() {
         guard !connectivityChecksDisabled else { return }
         hasLoadedEver = true
-        isOnline = true
         connectivityChecksDisabled = true
         // Stop and detach the NWPathMonitor to prevent further callbacks
         pathMonitor.cancel()
         pathMonitor.pathUpdateHandler = nil
+        // Once loaded, we consider the runtime "online enough" and hide any overlays
+        isOnline = true
         status.setLoadingOverlay(false)
     }
     
     private func startNetworkMonitoring() {
-        // Do not start monitoring if we already loaded once or if disabled
-        if connectivityChecksDisabled || hasLoadedEver { return }
+        // Do not start monitoring if permanently disabled for this run (after full load)
+        if connectivityChecksDisabled { return }
+
+        // Reset handler each time we (re)start
+        pathMonitor.cancel()
+        pathMonitor.pathUpdateHandler = nil
+
         pathMonitor.pathUpdateHandler = { [weak self] path in
             guard let self = self else { return }
             let nowOnline = (path.status == .satisfied)
             DispatchQueue.main.async {
-                // If checks are disabled or we've already loaded, ignore further updates
-                if self.connectivityChecksDisabled || self.hasLoadedEver { return }
-                // After the first successful load, do NOT toggle the UI back to "waiting"
-                if !self.hasLoadedEver {
-                    self.isOnline = nowOnline
+                if self.connectivityChecksDisabled { return } // once fully loaded, stop reacting
+
+                // Update UI flag for the waiting screen notice
+                self.isOnline = nowOnline
+
+                // If we lost internet mid-load, allow a new attempt when it comes back
+                if !nowOnline {
+                    self.isAttemptingInitialLoad = false
+                    self.wasOnline = false
+                    return
                 }
 
-                // Only request initial load on the first offline→online transition;
-                // never auto-trigger loads after the calculator has loaded once.
-                if nowOnline && !self.wasOnline && !self.hasLoadedEver {
+                // If we are still in waiting mode (calculator not visible yet), trigger a load when online.
+                // Guard with isAttemptingInitialLoad so we don't spam multiple loads while already trying.
+                if self.showWaitingScreen && nowOnline && !self.isAttemptingInitialLoad {
+                    self.isAttemptingInitialLoad = true
                     NotificationCenter.default.post(name: .loadCalculatorNow, object: nil)
-                    self.startSlowLoadDetectionIfNeeded()
                 }
+
                 self.wasOnline = nowOnline
             }
         }
         pathMonitor.start(queue: pathQueue)
     }
 
-    private func startSlowLoadDetectionIfNeeded() {
-        // Only show when we are online, haven't loaded yet, and not already showing
-        if connectivityChecksDisabled || hasLoadedEver || isLoadingSlow { return }
-        cancelSlowLoadDetection()
-        let work = DispatchWorkItem { [weak self] in
-            guard let self = self else { return }
-            if !self.hasLoadedEver && !self.connectivityChecksDisabled {
-                self.isLoadingSlow = true
-                self.status.setLoadingOverlay(true)
-            }
-        }
-        slowLoadWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + slowLoadDelay, execute: work)
-    }
-
-    private func cancelSlowLoadDetection() {
-        slowLoadWork?.cancel()
-        slowLoadWork = nil
-        if isLoadingSlow {
-            isLoadingSlow = false
-            status.setLoadingOverlay(false)
-        }
-    }
+    // (Removed: startSlowLoadDetectionIfNeeded and cancelSlowLoadDetection)
     
     func toggleMenuIcon(_ enabled: Bool) {
         if enabled {
@@ -275,9 +287,6 @@ extension KeyboardShortcuts.Name {
     func showMainWindow() {
         if let win = mainContentWindow() {
             showOnActiveSpace(win)
-            if !hasLoadedEver && !connectivityChecksDisabled {
-                startSlowLoadDetectionIfNeeded()
-            }
         } else {
             NSApp.activate(ignoringOtherApps: true)
         }
@@ -293,7 +302,6 @@ extension KeyboardShortcuts.Name {
         
         if !isFrontmost {
             // App not frontmost: bring to front and show
-            if !hasLoadedEver && !connectivityChecksDisabled { startSlowLoadDetectionIfNeeded() }
             showOnActiveSpace(win)
             return
         }
@@ -304,7 +312,6 @@ extension KeyboardShortcuts.Name {
             win.orderOut(nil)
         } else {
             // Window not visible → show it
-            if !hasLoadedEver && !connectivityChecksDisabled { startSlowLoadDetectionIfNeeded() }
             showOnActiveSpace(win)
         }
     }
@@ -313,8 +320,8 @@ extension KeyboardShortcuts.Name {
         menuIconEnabled = newValue
         UserDefaults.standard.set(newValue, forKey: "MenuIconEnabled")
         toggleMenuIcon(newValue)
-        if newValue, !hasLoadedEver && !connectivityChecksDisabled {
-            startSlowLoadDetectionIfNeeded()
+        if newValue, showWaitingScreen {
+            status.setLoadingOverlay(true)
         }
     }
     
