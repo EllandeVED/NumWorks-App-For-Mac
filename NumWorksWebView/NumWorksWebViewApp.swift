@@ -114,6 +114,10 @@ extension KeyboardShortcuts.Name {
                 self.status.setLoadingOverlay(false)
                 self.isAttemptingInitialLoad = false
                 self.disableConnectivityChecks()
+                // Defer update check until after the calculator has loaded to avoid blocking the load with a modal alert
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    UpdateChecker.shared.checkOnLaunch()
+                }
             }
         }
 
@@ -139,9 +143,6 @@ extension KeyboardShortcuts.Name {
         startNetworkMonitoring()
         showWaitingScreen = true
         status.setLoadingOverlay(true)
-
-        // Check GitHub Releases for a newer version (silent if up-to-date or offline)
-        UpdateChecker.shared.checkOnLaunch()
 
         DispatchQueue.main.async { [weak self] in
             self?.applySpaceBehavior()

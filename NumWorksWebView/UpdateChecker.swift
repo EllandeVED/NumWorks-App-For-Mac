@@ -204,45 +204,20 @@ final class UpdateChecker {
             textView.textContainerInset = NSSize(width: 6, height: 8)
             textView.textContainer?.lineFragmentPadding = 4
 
-            // Normalize line endings first
-            var normalized = notes.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
-            while normalized.contains("\n\n\n") { normalized = normalized.replacingOccurrences(of: "\n\n\n", with: "\n\n") }
-
+            // Paste the release body exactly as authored (preserve line breaks), no Markdown/HTML processing
             let font = Self.currentReleaseNotesFont()
+            let raw = notes
+            let text = raw.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
 
-            // Detect a simple list (bulleted or numbered). For those, keep plain text so hyphens/numbers remain visible.
-            let lines = normalized.split(separator: "\n", omittingEmptySubsequences: false)
-            let isSimpleList = lines.allSatisfy { line in
-                let s = line.trimmingCharacters(in: .whitespaces)
-                if s.isEmpty { return true }
-                if s.hasPrefix("-") || s.hasPrefix("*") { return true }
-                // Numbered list like "1. Thing"
-                if let dotIndex = s.firstIndex(of: "."), dotIndex > s.startIndex {
-                    let digits = s[..<dotIndex]
-                    return digits.allSatisfy({ $0.isNumber }) && s[s.index(after: dotIndex)] == " "
-                }
-                return false
-            }
+            textView.isRichText = false
+            textView.usesRuler = false
+            textView.isHorizontallyResizable = false
+            textView.isVerticallyResizable = true
+            textView.textContainer?.widthTracksTextView = true
 
-            if isSimpleList {
-                // Preserve the literal bullets/numbers so it appears exactly as authored
-                textView.string = normalized
-                textView.font = font
-                textView.textColor = .labelColor
-            } else if let attributed = try? AttributedString(markdown: normalized) {
-                // Rich Markdown rendering for non-trivial notes
-                let nsAttr = NSAttributedString(attributed)
-                textView.textStorage?.setAttributedString(nsAttr)
-                textView.textStorage?.addAttributes([
-                    .font: font,
-                    .foregroundColor: NSColor.labelColor
-                ], range: NSRange(location: 0, length: textView.textStorage?.length ?? 0))
-            } else {
-                // Fallback to plain text
-                textView.string = normalized
-                textView.font = font
-                textView.textColor = .labelColor
-            }
+            textView.string = text
+            textView.font = font
+            textView.textColor = .labelColor
 
             textView.typingAttributes = [
                 .font: font,
