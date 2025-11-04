@@ -123,7 +123,6 @@ import AppKit
 
         // CIRCLE SIZE
         let circleDiameter = max(8, iconSize.height * (badgeSizeFactor + 0.08)) // slightly larger circle
-        let strokeWidth = max(1.0, circleDiameter * badgeStrokeFactor)
 
         // Helper to snap to 0.5pt for sharper rendering on Retina
         func snap(_ v: CGFloat) -> CGFloat { round(v * 2) / 2 }
@@ -270,7 +269,7 @@ import AppKit
 
 private extension NSColor {
     convenience init?(hex: String) {
-        var hexSanitized = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        let hexSanitized = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         var int: UInt64 = 0
         Scanner(string: hexSanitized).scanHexInt64(&int)
         let a, r, g, b: UInt64
