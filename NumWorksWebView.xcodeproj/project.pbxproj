@@ -11,6 +11,7 @@
 		1D1ASSETS /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1D2ASSETS /* Assets.xcassets */; };
 		1D1CONTENT /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D2CONTENT /* ContentView.swift */; };
 		1E494DA22EA566020073D430 /* UpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E494DA12EA565FF0073D430 /* UpdateChecker.swift */; };
+		1EAE75A62EDC9AF100A5732D /* SettingsKit in Frameworks */ = {isa = PBXBuildFile; productRef = 1EAE75A52EDC9AF100A5732D /* SettingsKit */; };
 		1EB740F62E7C7D5C000FCE65 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 1EB740F52E7C7D5C000FCE65 /* KeyboardShortcuts */; };
 		1EB740F92E7C7D75000FCE65 /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 1EB740F82E7C7D75000FCE65 /* LaunchAtLogin */; };
 		1EB740FB2E7C7D9F000FCE65 /* Shortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EB740FA2E7C7D9C000FCE65 /* Shortcuts.swift */; };
@@ -36,6 +37,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1EB740F92E7C7D75000FCE65 /* LaunchAtLogin in Frameworks */,
+				1EAE75A62EDC9AF100A5732D /* SettingsKit in Frameworks */,
 				1EB740F62E7C7D5C000FCE65 /* KeyboardShortcuts in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -119,6 +121,7 @@
 			packageReferences = (
 				1EB740F42E7C7D5C000FCE65 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
 				1EB740F72E7C7D75000FCE65 /* XCRemoteSwiftPackageReference "LaunchAtLogin" */,
+				1EAE75A42EDC9AF100A5732D /* XCRemoteSwiftPackageReference "SettingsKit-macOS" */,
 			);
 			productRefGroup = 1DPRODUCTS /* Products */;
 			projectDirPath = "";
@@ -235,6 +238,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		1EAE75A42EDC9AF100A5732D /* XCRemoteSwiftPackageReference "SettingsKit-macOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/david-swift/SettingsKit-macOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.3.0;
+			};
+		};
 		1EB740F42E7C7D5C000FCE65 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sindresorhus/KeyboardShortcuts";
@@ -254,6 +265,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		1EAE75A52EDC9AF100A5732D /* SettingsKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1EAE75A42EDC9AF100A5732D /* XCRemoteSwiftPackageReference "SettingsKit-macOS" */;
+			productName = SettingsKit;
+		};
 		1EB740F52E7C7D5C000FCE65 /* KeyboardShortcuts */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 1EB740F42E7C7D5C000FCE65 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */;

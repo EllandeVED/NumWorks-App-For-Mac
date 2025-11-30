@@ -255,7 +255,7 @@ import AppKit
 
     @objc private func openSettings() {
         NSApp.activate(ignoringOtherApps: true)
-        NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
+        NotificationCenter.default.post(name: .openSettingsRequest, object: nil)
     }
 
     @objc private func toggleKeepAtFrontFromMenu() {

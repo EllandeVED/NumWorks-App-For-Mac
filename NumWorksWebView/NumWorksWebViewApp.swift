@@ -10,31 +10,59 @@ extension Notification.Name {
     static let loadCalculatorNow = Notification.Name("LoadCalculatorNow")
     static let calculatorDidLoad = Notification.Name("CalculatorDidLoad")
     static let reloadCalculatorNow = Notification.Name("ReloadCalculatorNow")
+    static let openSettingsRequest = Notification.Name("OpenSettingsRequest")
+}
+
+private struct SettingsOpenerView: View {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Color.clear
+            .frame(width: 0, height: 0)
+            .onReceive(NotificationCenter.default.publisher(for: .openSettingsRequest)) { _ in
+                openWindow(id: "settings")
+            }
+    }
 }
 
 @main
 struct NumWorksWebViewApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @Environment(\.openWindow) private var openWindow
 
     var body: some Scene {
+        // Main calculator window
         WindowGroup {
-            ContentView().environmentObject(appDelegate)
+            ContentView()
+                .environmentObject(appDelegate)
+                .background(SettingsOpenerView())
         }
-        
-        Settings {
+        .commands {
+            // Wire the standard Settings / Preferences menu item
+            CommandGroup(replacing: .appSettings) {
+                Button("Settings…") {
+                    openWindow(id: "settings")
+                }
+                .keyboardShortcut(",", modifiers: [.command])   // normal macOS one
+                .keyboardShortcut(";", modifiers: [.command])   // extra, just for testing
+            }
+        }
+
+        // Dedicated Settings window
+        Window("Settings", id: "settings") {
             SettingsView(appDelegate: appDelegate)
-                .frame(width: 460)
+                .frame(minWidth: 520, minHeight: 460)
         }
     }
 }
-
 extension KeyboardShortcuts.Name {
-    /// Global shortcut to toggle the "Keep in front of all windows" feature.
+    //Global shortcut to toggle the "Keep in front of all windows" feature.
     static let toggleKeepAtFront = Self("toggleKeepAtFront")
 }
 
 @MainActor final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private let status = StatusBarController()
+
     
     // +++ Simple online state you can also bind to UI if you want a “waiting” screen
     @Published var isOnline: Bool = true
@@ -49,7 +77,7 @@ extension KeyboardShortcuts.Name {
     
     // Track whether we're currently attempting to load the calculator (prevents spam reloads)
     @Published var isAttemptingInitialLoad: Bool = false
-    
+
     // +++ Network monitor
     private let pathMonitor = NWPathMonitor()
     private let pathQueue = DispatchQueue(label: "NetPathMonitor")
@@ -63,7 +91,7 @@ extension KeyboardShortcuts.Name {
     enum PinIconPlacement: String, CaseIterable, Identifiable { case onApp, onMenu, both; var id: String { rawValue } }
     @Published var showPinIcon: Bool = UserDefaults.standard.bool(forKey: "ShowPinIcon")
     @Published var pinIconPlacement: PinIconPlacement = PinIconPlacement(rawValue: UserDefaults.standard.string(forKey: "PinIconPlacement") ?? "both") ?? .both
-    
+
     override init() {
         super.init()
         // Register first-run defaults for all settings
@@ -383,4 +411,5 @@ extension KeyboardShortcuts.Name {
         }
     }
     
+    // (Settings window management is now handled by SwiftUI Windows.)
 }

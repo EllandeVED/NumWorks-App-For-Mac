@@ -10,7 +10,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 16) {
 
                 // MARK: Shortcut
-                GroupBox("Shortcut") {
+                GroupBox("Shortcuts") {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack(alignment: .firstTextBaseline, spacing: 12) {
                             Text("Choose your shortcut to Show/Hide the calculator")
@@ -98,7 +98,7 @@ struct SettingsView: View {
 
 
 
-                GroupBox("Desktop") {
+                GroupBox("Advanced") {
                     VStack(alignment: .leading, spacing: 6) {
                         Toggle(
                             "Open in current desktop",
@@ -204,3 +204,4 @@ private struct SlidingSegmentedControl: View {
         return CGFloat(idx) * w
     }
 }
+
