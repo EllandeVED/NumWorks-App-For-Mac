@@ -13,6 +13,8 @@ import AppKit
     private var baseIcon: NSImage?
     private var isBadged: Bool = false
     private var isLoadingOverlay: Bool = false
+    
+    private var currentIcon: NSImage?
 
     var onShowApp: (() -> Void)?
     weak var appDelegate: AppDelegate?
@@ -21,11 +23,12 @@ import AppKit
         guard statusItem == nil else { return }
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let img = NSImage(named: "MenuBarIcon") {
-            img.isTemplate = true            // adopts menu bar color
-            img.size = NSSize(width: 18, height: 18)  // ensure it renders at status bar size
-            item.button?.image = img
-            baseIcon = img                    // base icon for dynamic badging
-            originalStatusImage = img         // keep if other code still reads it
+            img.isTemplate = true
+            img.size = NSSize(width: 18, height: 18)
+            baseIcon = img
+            originalStatusImage = img
+            self.currentIcon = img  // Store strong reference
+            item.button?.image = self.currentIcon  // Use stored reference
             item.length = NSStatusItem.squareLength // avoid clipping the badge
             updateIcon()                      // apply current badge state
         } else {
@@ -105,7 +108,8 @@ import AppKit
 
         // Use template only when unbadged and not showing overlay; keep colors otherwise
         finalImage.isTemplate = !isBadged && !isLoadingOverlay
-        button.image = finalImage
+        self.currentIcon = finalImage  // Store strong reference first
+        button.image = self.currentIcon  // Then assign to button
         button.image?.isTemplate = !isBadged && !isLoadingOverlay
         button.needsDisplay = true
     }
