@@ -1,5 +1,5 @@
 {
-  "originHash" : "52d9d6c48d461e4b6d9ab44a4303b746daf0fba38f316e753e05426e6f38dd5f",
+  "originHash" : "75202cb1391d816c99db5fd453a4e93e5c6249cccf4bef19dc4eb15568d40c1e",
   "pins" : [
     {
       "identity" : "keyboardshortcuts",
@@ -17,24 +17,6 @@
       "state" : {
         "branch" : "main",
         "revision" : "9a894d799269cb591037f9f9cb0961510d4dca81"
-      }
-    },
-    {
-      "identity" : "settingskit-macos",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/david-swift/SettingsKit-macOS",
-      "state" : {
-        "revision" : "3dea00df7113e7a1e245ff58067cd8226988ec17",
-        "version" : "0.3.0"
-      }
-    },
-    {
-      "identity" : "swiftlintplugin",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/lukepistrol/SwiftLintPlugin",
-      "state" : {
-        "revision" : "9bbc46a4cf8275ceb39334f6276b6b215d67d5d5",
-        "version" : "0.62.2"
       }
     }
   ],

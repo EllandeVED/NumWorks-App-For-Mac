@@ -1,7 +1,7 @@
 import SwiftUI
 import WebKit
 import AppKit
-import Network   // ← add this
+import Network   
 
 extension Notification.Name {
     static let netStatusChanged = Notification.Name("netStatusChanged")
