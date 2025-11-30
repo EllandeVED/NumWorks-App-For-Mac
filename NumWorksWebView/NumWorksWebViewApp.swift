@@ -46,6 +46,13 @@ struct NumWorksWebViewApp: App {
                 .keyboardShortcut(",", modifiers: [.command])   // normal macOS one
                 .keyboardShortcut(";", modifiers: [.command])   // extra, just for testing
             }
+            // Add Move to Applications… command after Settings
+            CommandGroup(after: .appSettings) {
+                Button("Move to Applications…") {
+                    appDelegate.moveToApplicationsIfNeeded(userInitiated: true)
+                }
+                .disabled(appDelegate.isInApplicationsFolder)
+            }
         }
 
         // Dedicated Settings window
@@ -61,6 +68,14 @@ extension KeyboardShortcuts.Name {
 }
 
 @MainActor final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
+    // Returns true if the app bundle is in /Applications or ~/Applications
+    var isInApplicationsFolder: Bool {
+        let bundleURL = Bundle.main.bundleURL
+        let path = bundleURL.path
+        // Consider both system and user Applications folders
+        return path.hasPrefix("/Applications/") || path.hasPrefix(NSHomeDirectory() + "/Applications/")
+    }
+
     private let status = StatusBarController()
 
     
@@ -146,6 +161,10 @@ extension KeyboardShortcuts.Name {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     UpdateChecker.shared.checkOnLaunch()
                 }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+                    guard let self else { return }
+                    self.maybePromptMoveToApplications()
+                }
             }
         }
 
@@ -173,7 +192,8 @@ extension KeyboardShortcuts.Name {
         status.setLoadingOverlay(true)
 
         DispatchQueue.main.async { [weak self] in
-            self?.applySpaceBehavior()
+            guard let self else { return }
+            self.applySpaceBehavior()
         }
     }
     
@@ -412,4 +432,47 @@ extension KeyboardShortcuts.Name {
     }
     
     // (Settings window management is now handled by SwiftUI Windows.)
+
+    // Moves the app bundle to /Applications if not already there.
+    func moveToApplicationsIfNeeded(userInitiated: Bool) {
+        if isInApplicationsFolder {
+            // Optionally show an alert here if userInitiated, but for simplicity just return.
+            return
+        }
+
+        let fileManager = FileManager.default
+        let bundleURL = Bundle.main.bundleURL
+        let destinationDir = URL(fileURLWithPath: "/Applications", isDirectory: true)
+        let destinationURL = destinationDir.appendingPathComponent(bundleURL.lastPathComponent)
+
+        do {
+            if fileManager.fileExists(atPath: destinationURL.path) {
+                _ = try fileManager.replaceItemAt(destinationURL, withItemAt: bundleURL)
+            } else {
+                try fileManager.moveItem(at: bundleURL, to: destinationURL)
+            }
+            let opened = NSWorkspace.shared.open(destinationURL)
+            if opened {
+                NSApp.terminate(nil)
+            }
+        } catch {
+            NSLog("Move to Applications failed: \(error.localizedDescription)")
+        }
+    }
+
+    private func maybePromptMoveToApplications() {
+        // Only prompt if not already in an Applications folder
+        guard !isInApplicationsFolder else { return }
+
+        let alert = NSAlert()
+        alert.messageText = "Move to Applications folder?"
+        alert.informativeText = "It's recommended to move NumWorksWebView to the Applications folder. This keeps it easy to find and helps future updates work correctly."
+        alert.addButton(withTitle: "Move to Applications")
+        alert.addButton(withTitle: "Not Now")
+
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            moveToApplicationsIfNeeded(userInitiated: true)
+        }
+    }
 }
