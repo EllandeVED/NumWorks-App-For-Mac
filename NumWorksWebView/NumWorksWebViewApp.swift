@@ -157,13 +157,19 @@ extension KeyboardShortcuts.Name {
                 self.status.setLoadingOverlay(false)
                 self.isAttemptingInitialLoad = false
                 self.disableConnectivityChecks()
-                // Defer update check until after the calculator has loaded to avoid blocking the load with a modal alert
+
+                // Defer the move-to-Applications prompt slightly so it doesn't block the initial load
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                     guard let self else { return }
                     self.maybePromptMoveToApplications()
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                    NWUpdateChecker.shared.nwCheckOnLaunch()
+
+                    // Only schedule the update check when we are already in an Applications folder.
+                    // This avoids showing an update alert on the same run where the user might decide to move the app.
+                    if self.isInApplicationsFolder {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                            NWUpdateChecker.shared.nwCheckOnLaunch()
+                        }
+                    }
                 }
             }
         }
@@ -451,12 +457,45 @@ extension KeyboardShortcuts.Name {
             } else {
                 try fileManager.moveItem(at: bundleURL, to: destinationURL)
             }
-            let opened = NSWorkspace.shared.open(destinationURL)
-            if opened {
-                NSApp.terminate(nil)
-            }
+
+            // If we successfully moved, relaunch from /Applications
+            relaunchFromApplications(at: destinationURL)
         } catch {
             NSLog("Move to Applications failed: \(error.localizedDescription)")
+
+            let nsError = error as NSError
+            // If the failure is due to a permissions issue, explain this to the user
+            if nsError.domain == NSCocoaErrorDomain,
+               nsError.code == NSFileWriteNoPermissionError || nsError.code == NSFileWriteVolumeReadOnlyError {
+                let alert = NSAlert()
+                alert.alertStyle = .warning
+                alert.messageText = "Can’t Move to Applications"
+                alert.informativeText = "NumWorksWebView doesn’t have permission to move itself to the Applications folder.\n\nYou may need to enter your macOS password or move the app manually by dragging it into the Applications folder in Finder."
+                alert.addButton(withTitle: "OK")
+                alert.runModal()
+            } else if userInitiated {
+                // For other errors, show a generic failure alert if the user explicitly requested the move
+                let alert = NSAlert()
+                alert.alertStyle = .warning
+                alert.messageText = "Move to Applications Failed"
+                alert.informativeText = "The app couldn’t be moved to the Applications folder.\n\nError: \(nsError.localizedDescription)"
+                alert.addButton(withTitle: "OK")
+                alert.runModal()
+            }
+        }
+    }
+
+    // Relaunches the app from the given destination URL in /Applications
+    private func relaunchFromApplications(at destinationURL: URL) {
+        let config = NSWorkspace.OpenConfiguration()
+        config.activates = true
+
+        NSWorkspace.shared.openApplication(at: destinationURL, configuration: config) { _, error in
+            if let error = error {
+                NSLog("Relaunch from Applications failed: \(error.localizedDescription)")
+                return
+            }
+            NSApp.terminate(nil)
         }
     }
 
