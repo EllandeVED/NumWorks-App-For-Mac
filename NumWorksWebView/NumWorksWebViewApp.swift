@@ -158,12 +158,12 @@ extension KeyboardShortcuts.Name {
                 self.isAttemptingInitialLoad = false
                 self.disableConnectivityChecks()
                 // Defer update check until after the calculator has loaded to avoid blocking the load with a modal alert
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    UpdateChecker.shared.checkOnLaunch()
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                     guard let self else { return }
                     self.maybePromptMoveToApplications()
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                    NWUpdateChecker.shared.nwCheckOnLaunch()
                 }
             }
         }

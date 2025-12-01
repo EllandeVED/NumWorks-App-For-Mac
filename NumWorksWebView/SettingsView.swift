@@ -132,7 +132,7 @@ struct SettingsView: View {
                             Link("See on GitHub (Support)", destination: URL(string: "https://github.com/EllandeVED/NumWorks-App-For-Mac")!)
                             Spacer()
                             Button("Check for Updates…") {
-                                UpdateChecker.shared.checkNow()
+                                NWUpdateChecker.shared.nwCheckNow()
                             }
                         }
                     }

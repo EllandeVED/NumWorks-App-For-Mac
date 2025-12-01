@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import DockProgress
 
 /// Simple “check GitHub Releases for a newer version” helper.
 @MainActor
@@ -24,6 +25,12 @@ final class NWUpdateChecker {
 
     // In-app download state (simple one-shot download)
     private var activeDownloadTask: URLSessionDownloadTask?
+    private var activeDownloadObservation: NSKeyValueObservation?
+    private weak var progressWindow: NSWindow?
+    private weak var progressBar: NSProgressIndicator?
+    private weak var progressLabel: NSTextField?
+    private weak var finderButton: NSButton?
+    private var downloadedFileURL: URL?
 
     /// Call at launch. Silent on errors / up-to-date.
     func nwCheckOnLaunch() {
@@ -172,10 +179,23 @@ final class NWUpdateChecker {
         return formatter.string(fromByteCount: bytes)
     }
 
+    @objc private func progressGoToFinderClicked(_ sender: Any?) {
+        if let url = downloadedFileURL {
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+        }
+        progressWindow?.close()
+        progressWindow = nil
+        progressBar = nil
+        progressLabel = nil
+        finderButton = nil
+        downloadedFileURL = nil
+    }
+
     // MARK: - Alerts
 
     private func nwShowUpdateAlert(remoteTag: String, page: URL, directDownloadURL: URL?, notes: String?) {
         let alert = NSAlert()
+        alert.window.title = "NumWorksWebView Update"
         alert.messageText = "A New Version is Available"
         alert.informativeText = "Version \(remoteTag) is available. Would you like to download it?"
         alert.alertStyle = .informational
@@ -274,51 +294,91 @@ final class NWUpdateChecker {
     }
     
     private func nwDownloadAsset(from url: URL, suggestedName: String = "NumWorksWebView.zip") {
-        // Cancel any previous download
+        // Cancel any previous download and clear state
         activeDownloadTask?.cancel()
+        activeDownloadObservation = nil
+        downloadedFileURL = nil
 
         // Destination in ~/Downloads
         let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first!
         let dest = downloads.appendingPathComponent(suggestedName)
 
-        // Alert with an indeterminate progress indicator
-        let alert = NSAlert()
-        alert.messageText = "Downloading Update…"
-        alert.informativeText = "Please wait while the new version is being downloaded."
-        alert.alertStyle = .informational
-        alert.addButton(withTitle: "Cancel")
+        // Build a small progress window
+        let windowWidth: CGFloat = 360
+        let windowHeight: CGFloat = 120
+        let windowRect = NSRect(x: 0, y: 0, width: windowWidth, height: windowHeight)
+        let window = NSWindow(contentRect: windowRect,
+                              styleMask: [.titled, .closable],
+                              backing: .buffered,
+                              defer: false)
+        window.isReleasedWhenClosed = false
+        window.title = "Downloading Update"
 
-        let indicator = NSProgressIndicator(frame: NSRect(x: 0, y: 0, width: 240, height: 18))
-        indicator.isIndeterminate = true
-        indicator.style = .spinning
-        indicator.startAnimation(nil)
-        alert.accessoryView = indicator
+        let content = NSView(frame: windowRect)
 
-        // Create the download task
+        // Progress bar near the top
+        let barY = windowHeight - 55
+        let bar = NSProgressIndicator(frame: NSRect(x: 20, y: barY, width: windowWidth - 40, height: 18))
+        bar.isIndeterminate = false
+        bar.minValue = 0
+        bar.maxValue = 1
+        bar.doubleValue = 0
+        bar.style = .bar
+        content.addSubview(bar)
+
+        // Label directly under the bar
+        let label = NSTextField(labelWithString: "Downloading… 0%")
+        label.frame = NSRect(x: 20, y: barY - 24, width: windowWidth - 40, height: 18)
+        label.alignment = .center
+        content.addSubview(label)
+
+        // “Go to Finder” button centered under the label, initially hidden until download completes
+        // “Go to Finder” button centered under the label, initially hidden until download completes
+        let finderWidth: CGFloat = 120
+        let finderX = (windowWidth - finderWidth) / 2
+        let finder = NSButton(title: "Go to Finder", target: self, action: #selector(progressGoToFinderClicked(_:)))
+        // Slightly lower Y to increase spacing between label and button
+        finder.frame = NSRect(x: finderX, y: 14, width: finderWidth, height: 30)
+        finder.isHidden = true
+        finder.alphaValue = 0          // start hidden for fade-in
+        finder.bezelStyle = .rounded
+        finder.contentTintColor = .systemBlue   // blue button
+        content.addSubview(finder)
+
+        window.contentView = content
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+
+        // Keep references for later updates
+        progressWindow = window
+        progressBar = bar
+        progressLabel = label
+        finderButton = finder
+
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 60)
-        let task = URLSession.shared.downloadTask(with: request) { tempURL, response, error in
-            // Ensure UI updates happen on main thread
+
+        let task = URLSession.shared.downloadTask(with: request) { [weak self] tempURL, response, error in
+            guard let self else { return }
+
+            // When the task finishes (success or failure), clear the Dock progress
             DispatchQueue.main.async {
-                // Close the alert window if it is visible
-                if let window = alert.window.sheetParent {
-                    window.endSheet(alert.window)
-                } else {
-                    alert.window.orderOut(nil)
-                }
+                DockProgress.progressInstance = nil
+                DockProgress.progress = 0
             }
 
-            // Handle cancellation or errors
             if let error = error as? URLError, error.code == .cancelled {
                 return
             }
             if let error = error {
+                print("Update download failed: \(error.localizedDescription)")
                 DispatchQueue.main.async {
-                    let errorAlert = NSAlert()
-                    errorAlert.messageText = "Download Failed"
-                    errorAlert.informativeText = "The update could not be downloaded.\n\nError: \(error.localizedDescription)"
-                    errorAlert.alertStyle = .warning
-                    errorAlert.addButton(withTitle: "OK")
-                    errorAlert.runModal()
+                    self.progressWindow?.close()
+                    self.progressWindow = nil
+                    self.progressBar = nil
+                    self.progressLabel = nil
+                    self.finderButton = nil
+                    self.activeDownloadObservation = nil
                 }
                 return
             }
@@ -328,39 +388,93 @@ final class NWUpdateChecker {
             do {
                 try? FileManager.default.removeItem(at: dest)
                 try FileManager.default.moveItem(at: tempURL, to: dest)
+                self.downloadedFileURL = dest
 
-                // Reveal in Finder
                 DispatchQueue.main.async {
-                    NSWorkspace.shared.activateFileViewerSelecting([dest])
+                    guard let bar = self.progressBar else {
+                        // If for some reason the bar is gone, just show Finder button immediately
+                        if let label = self.progressLabel {
+                            label.stringValue = "File has been downloaded. Open the zip and launch the new app."
+                        }
+                        if let button = self.finderButton {
+                            button.isHidden = false
+                            button.alphaValue = 1.0
+                        }
+                        return
+                    }
+
+                    // 1) Animate the bar to 100%
+                    NSAnimationContext.runAnimationGroup({ context in
+                        context.duration = 0.25
+                        bar.animator().doubleValue = 1.0
+                    }, completionHandler: {
+                        // 2) Fade in the completion text
+                        if let label = self.progressLabel {
+                            label.stringValue = "File has been downloaded. Open the zip and launch the new app."
+                            label.alphaValue = 0.0
+                            NSAnimationContext.runAnimationGroup({ context in
+                                context.duration = 0.25
+                                label.animator().alphaValue = 1.0
+                            }, completionHandler: {
+                                // 3) Fade in the “Go to Finder” button
+                                if let button = self.finderButton {
+                                    button.isHidden = false
+                                    button.alphaValue = 0.0
+                                    NSAnimationContext.runAnimationGroup { context in
+                                        context.duration = 0.25
+                                        button.animator().alphaValue = 1.0
+                                    }
+                                }
+                            })
+                        } else if let button = self.finderButton {
+                            // No label; just show the button if label is missing
+                            button.isHidden = false
+                            button.alphaValue = 1.0
+                        }
+                    })
                 }
             } catch {
+                print("Could not save update: \(error.localizedDescription)")
                 DispatchQueue.main.async {
-                    let errorAlert = NSAlert()
-                    errorAlert.messageText = "Download Failed"
-                    errorAlert.informativeText = "The update could not be saved.\n\nError: \(error.localizedDescription)"
-                    errorAlert.alertStyle = .warning
-                    errorAlert.addButton(withTitle: "OK")
-                    errorAlert.runModal()
+                    self.progressWindow?.close()
+                    self.progressWindow = nil
+                    self.progressBar = nil
+                    self.progressLabel = nil
+                    self.finderButton = nil
+                    self.activeDownloadObservation = nil
+                }
+            }
+        }
+
+        // Configure DockProgress to show a squircle progress indicator around the Dock icon
+        DockProgress.style = .squircle(color: .blue)
+        DockProgress.progressInstance = task.progress
+
+        // Observe progress to update the small window's bar
+        // Observe progress to update the small window's bar
+        activeDownloadObservation = task.progress.observe(\.fractionCompleted, options: [.initial, .new]) { [weak self] progressObj, _ in
+            guard let self else { return }
+            DispatchQueue.main.async {
+                guard let bar = self.progressBar else { return }
+                var fraction = progressObj.fractionCompleted
+                if fraction >= 1.0 {
+                    fraction = 1.0
+                    // Set to full and stop observing; the final animation is handled in the completion handler
+                    bar.doubleValue = 1.0
+                    self.activeDownloadObservation = nil
+                } else {
+                    bar.doubleValue = max(0, min(1, fraction))
+                }
+                if let label = self.progressLabel {
+                    let clamped = max(0, min(1, fraction))
+                    let percent = Int((clamped * 100).rounded())
+                    label.stringValue = "Downloading… \(percent)%"
                 }
             }
         }
 
         activeDownloadTask = task
         task.resume()
-
-        // Present the alert as a sheet on the main window if possible; otherwise as a regular non-blocking alert.
-        if let window = NSApp.mainWindow ?? NSApp.keyWindow {
-            window.beginSheet(alert.window) { [weak self] response in
-                guard let self else { return }
-                if response == .alertFirstButtonReturn {
-                    self.activeDownloadTask?.cancel()
-                }
-                self.activeDownloadTask = nil
-            }
-        } else {
-            alert.window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-        }
     }
     private func nwShowInfoAlert(title: String, text: String) {
         let alert = NSAlert()

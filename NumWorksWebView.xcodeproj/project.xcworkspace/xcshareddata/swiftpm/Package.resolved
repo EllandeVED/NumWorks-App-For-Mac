@@ -1,6 +1,15 @@
 {
-  "originHash" : "75202cb1391d816c99db5fd453a4e93e5c6249cccf4bef19dc4eb15568d40c1e",
+  "originHash" : "48be34747652cdd60ce0b49fe48d435aca519c772c7fbc0695c498f9ea663cb7",
   "pins" : [
+    {
+      "identity" : "dockprogress",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sindresorhus/DockProgress",
+      "state" : {
+        "revision" : "0313b37635623c85c668c43658080f90bd0601ab",
+        "version" : "5.0.2"
+      }
+    },
     {
       "identity" : "keyboardshortcuts",
       "kind" : "remoteSourceControl",
