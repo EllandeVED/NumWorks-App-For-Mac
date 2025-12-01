@@ -11,6 +11,8 @@ extension Notification.Name {
     static let calculatorDidLoad = Notification.Name("CalculatorDidLoad")
     static let reloadCalculatorNow = Notification.Name("ReloadCalculatorNow")
     static let openSettingsRequest = Notification.Name("OpenSettingsRequest")
+    static let showUpdateBadge = Notification.Name("ShowUpdateBadge")
+    static let hideUpdateBadge = Notification.Name("HideUpdateBadge")
 }
 
 private struct SettingsOpenerView: View {
@@ -74,6 +76,14 @@ extension KeyboardShortcuts.Name {
         let path = bundleURL.path
         // Consider both system and user Applications folders
         return path.hasPrefix("/Applications/") || path.hasPrefix(NSHomeDirectory() + "/Applications/")
+    }
+
+    /// When this launch argument is present, always run the auto-updater
+    /// even if the app bundle is not in an Applications folder.
+    /// Usage (in Xcode scheme or command line):
+    ///   --force-update-check-outside-applications
+    private var forceUpdateCheckOutsideApplications: Bool {
+        return CommandLine.arguments.contains("--force-update-check-outside-applications")
     }
 
     private let status = StatusBarController()
@@ -163,9 +173,9 @@ extension KeyboardShortcuts.Name {
                     guard let self else { return }
                     self.maybePromptMoveToApplications()
 
-                    // Only schedule the update check when we are already in an Applications folder.
-                    // This avoids showing an update alert on the same run where the user might decide to move the app.
-                    if self.isInApplicationsFolder {
+                    // Normally only schedule the update check when we are already in an Applications folder.
+                    // If the special launch flag is present, force the updater even outside Applications.
+                    if self.isInApplicationsFolder || self.forceUpdateCheckOutsideApplications {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
                             NWUpdateChecker.shared.nwCheckOnLaunch()
                         }
@@ -191,7 +201,15 @@ extension KeyboardShortcuts.Name {
                 }
             }
         }
-        
+
+        // Show / hide update badge in the menu bar icon
+        NotificationCenter.default.addObserver(forName: .showUpdateBadge, object: nil, queue: .main) { [weak self] _ in
+            self?.status.setUpdateBadgeVisible(true)
+        }
+        NotificationCenter.default.addObserver(forName: .hideUpdateBadge, object: nil, queue: .main) { [weak self] _ in
+            self?.status.setUpdateBadgeVisible(false)
+        }
+
         // +++ Start monitoring connectivity
         startNetworkMonitoring()
         showWaitingScreen = true
@@ -439,6 +457,37 @@ extension KeyboardShortcuts.Name {
     
     // (Settings window management is now handled by SwiftUI Windows.)
 
+    /// Attempts to move the app bundle into /Applications via Finder / AppleScript.
+    /// This path will trigger the standard macOS authorization dialog if needed
+    /// (for example when writing into the system Applications folder).
+    private func moveToApplicationsViaFinder(bundleURL: URL, destinationDir: URL) throws {
+        // We ask Finder to move the app bundle into the Applications folder.
+        // Using Finder ensures macOS shows the normal permission/auth dialog
+        // instead of failing silently with a "no permission" error.
+        let fromPath = bundleURL.path.replacingOccurrences(of: "\"", with: "\\\"")
+        let destPath = destinationDir.path.replacingOccurrences(of: "\"", with: "\\\"")
+
+        let scriptSource = """
+        tell application "Finder"
+            move POSIX file "\(fromPath)" to POSIX file "\(destPath)"
+        end tell
+        """
+
+        var errorDict: NSDictionary?
+        if let appleScript = NSAppleScript(source: scriptSource) {
+            _ = appleScript.executeAndReturnError(&errorDict)
+            if let errorDict,
+               let message = errorDict[NSAppleScript.errorMessage] as? String {
+                throw NSError(domain: "AppleScriptMoveError",
+                              code: 1,
+                              userInfo: [NSLocalizedDescriptionKey: message])
+            }
+        } else {
+            throw NSError(domain: "AppleScriptMoveError",
+                          code: 0,
+                          userInfo: [NSLocalizedDescriptionKey: "Could not create AppleScript for move operation."])
+        }
+    }
     // Moves the app bundle to /Applications if not already there.
     func moveToApplicationsIfNeeded(userInitiated: Bool) {
         if isInApplicationsFolder {
@@ -464,15 +513,30 @@ extension KeyboardShortcuts.Name {
             NSLog("Move to Applications failed: \(error.localizedDescription)")
 
             let nsError = error as NSError
-            // If the failure is due to a permissions issue, explain this to the user
+
+            // If the failure is due to a permissions issue, try again via Finder / AppleScript.
             if nsError.domain == NSCocoaErrorDomain,
-               nsError.code == NSFileWriteNoPermissionError || nsError.code == NSFileWriteVolumeReadOnlyError {
-                let alert = NSAlert()
-                alert.alertStyle = .warning
-                alert.messageText = "Can’t Move to Applications"
-                alert.informativeText = "NumWorksWebView doesn’t have permission to move itself to the Applications folder.\n\nYou may need to enter your macOS password or move the app manually by dragging it into the Applications folder in Finder."
-                alert.addButton(withTitle: "OK")
-                alert.runModal()
+               (nsError.code == NSFileWriteNoPermissionError || nsError.code == NSFileWriteVolumeReadOnlyError) {
+                do {
+                    try moveToApplicationsViaFinder(bundleURL: bundleURL, destinationDir: destinationDir)
+                    // If Finder successfully moved the app, relaunch from /Applications.
+                    relaunchFromApplications(at: destinationURL)
+                } catch {
+                    // Finder/AppleScript path also failed: explain this to the user.
+                    let finalError = error as NSError
+                    let alert = NSAlert()
+                    alert.alertStyle = .warning
+                    alert.messageText = "Can’t Move to Applications"
+                    alert.informativeText = """
+                    NumWorksWebView tried to move itself to the Applications folder, but macOS did not allow it.
+
+                    Please move the app manually by dragging it into the Applications folder in Finder.
+
+                    Error: \(finalError.localizedDescription)
+                    """
+                    alert.addButton(withTitle: "OK")
+                    alert.runModal()
+                }
             } else if userInitiated {
                 // For other errors, show a generic failure alert if the user explicitly requested the move
                 let alert = NSAlert()
