@@ -1,12 +1,21 @@
+<div align="center">
 
-# NUMWORKS WEB VIEW APP FOR MAC
+<h1 style=font-size: 3rem; margin-bottom: 1.5rem;">
+NUMWORKS WEB VIEW APP FOR MAC
+</h1>
 
-Hi, this is a small .app that serves as a NuWorksApp for Mac.
+</div>
+
+
+
+
+
+Hi, this is a small .app that serves as a NumWorksApp for Mac.
 It looks like this:
 
 <img width="315" height="611" alt="image" src="https://github.com/user-attachments/assets/054255dc-bfcb-4314-8de6-0241dce6d988" />
 
-And it has a setting pannel where you can customise it (*See **INFO**)
+And it has a setting panel where you can customise it (*See **INFO**)
 
 
 
@@ -25,19 +34,20 @@ And it has a setting pannel where you can customise it (*See **INFO**)
 
 
 
-## UPDATES
+## UPDATES:
 
-- The app doesn't auto-update, however, you will be notified when an update is available (at login or in settings)
-- You need to delete the old version and replace it with the new one: when moving the new app to your application folder you will be prompted with the following message (see below), press **"Replace"**
-<img width="418" height="110" alt="image" src="https://github.com/user-attachments/assets/86cbf3b7-e5c6-431a-a18f-1b4a401e15fa" />
+- Follow in-app instructions
+- Make to have your app inside the application folder for auto-updates to work without any trouble
 
 
 
 ## INFO:
 
 - You need internet at least once to load the calculator after you launch it. It will stay loaded until you turn off your computer (working on an offline version)
-- To access the settings of the app, go on the top left of you screen in **"NumWorksApp"** and then go in **"Settings"**:
+- To access the settings (1) of the app, right click on the menu bar icon
+- To access the settings (2) of the app, go on the top left of you screen in **"NumWorksApp"** and then go in **"Settings"**:
 <img width="357" height="308" alt="image" src="https://github.com/user-attachments/assets/cbd895cd-71b2-44a3-8bd5-2d7047f08399" />
+
 
 
 
