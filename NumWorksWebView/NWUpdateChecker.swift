@@ -179,16 +179,33 @@ final class NWUpdateChecker {
         return formatter.string(fromByteCount: bytes)
     }
 
+    @objc private func progressNextClicked(_ sender: Any?) {
+        // When the user clicks Next, show the final instructions and turn the button into "Finish (Go to Finder)"
+        if let label = progressLabel {
+            label.stringValue = "File has been downloaded. Open the zip and launch the new app."
+        }
+        if let button = finderButton {
+            button.title = "Finish (Go to Finder)"
+            button.target = self
+            button.action = #selector(progressGoToFinderClicked(_:))
+        }
+    }
+
     @objc private func progressGoToFinderClicked(_ sender: Any?) {
         if let url = downloadedFileURL {
             NSWorkspace.shared.activateFileViewerSelecting([url])
         }
+
+        // Clean up the progress window UI
         progressWindow?.close()
         progressWindow = nil
         progressBar = nil
         progressLabel = nil
         finderButton = nil
         downloadedFileURL = nil
+
+        // Quit the app so the user can open the new app without conflicts
+        NSApp.terminate(nil)
     }
 
     // MARK: - Alerts
@@ -332,17 +349,20 @@ final class NWUpdateChecker {
         label.alignment = .center
         content.addSubview(label)
 
-        // “Go to Finder” button centered under the label, initially hidden until download completes
-        // “Go to Finder” button centered under the label, initially hidden until download completes
-        let finderWidth: CGFloat = 120
-        let finderX = (windowWidth - finderWidth) / 2
-        let finder = NSButton(title: "Go to Finder", target: self, action: #selector(progressGoToFinderClicked(_:)))
-        // Slightly lower Y to increase spacing between label and button
-        finder.frame = NSRect(x: finderX, y: 14, width: finderWidth, height: 30)
+        // “Next” button near the bottom-right, initially hidden until download completes.
+        // After the user clicks it, it will turn into “Finish (Go to Finder)”.
+        let finderWidth: CGFloat = 150   // about one-quarter wider than the original button
+        let finderHeight: CGFloat = 32
+        let finderPadding: CGFloat = 16
+        let finderX = windowWidth - finderPadding - finderWidth
+        let finderY: CGFloat = 8
+        let finder = NSButton(title: "Next", target: self, action: #selector(progressNextClicked(_:)))
+        finder.frame = NSRect(x: finderX, y: finderY, width: finderWidth, height: finderHeight)
         finder.isHidden = true
         finder.alphaValue = 0          // start hidden for fade-in
         finder.bezelStyle = .rounded
-        finder.contentTintColor = .systemBlue   // blue button
+        finder.bezelColor = .systemBlue
+        finder.contentTintColor = .white   // white text on blue background
         content.addSubview(finder)
 
         window.contentView = content
@@ -408,28 +428,14 @@ final class NWUpdateChecker {
                         context.duration = 0.25
                         bar.animator().doubleValue = 1.0
                     }, completionHandler: {
-                        // 2) Fade in the completion text
-                        if let label = self.progressLabel {
-                            label.stringValue = "File has been downloaded. Open the zip and launch the new app."
-                            label.alphaValue = 0.0
-                            NSAnimationContext.runAnimationGroup({ context in
-                                context.duration = 0.25
-                                label.animator().alphaValue = 1.0
-                            }, completionHandler: {
-                                // 3) Fade in the “Go to Finder” button
-                                if let button = self.finderButton {
-                                    button.isHidden = false
-                                    button.alphaValue = 0.0
-                                    NSAnimationContext.runAnimationGroup { context in
-                                        context.duration = 0.25
-                                        button.animator().alphaValue = 1.0
-                                    }
-                                }
-                            })
-                        } else if let button = self.finderButton {
-                            // No label; just show the button if label is missing
+                        // After the bar is full, fade in the "Next" button.
+                        if let button = self.finderButton {
                             button.isHidden = false
-                            button.alphaValue = 1.0
+                            button.alphaValue = 0.0
+                            NSAnimationContext.runAnimationGroup { context in
+                                context.duration = 0.25
+                                button.animator().alphaValue = 1.0
+                            }
                         }
                     })
                 }
@@ -451,7 +457,6 @@ final class NWUpdateChecker {
         DockProgress.progressInstance = task.progress
 
         // Observe progress to update the small window's bar
-        // Observe progress to update the small window's bar
         activeDownloadObservation = task.progress.observe(\.fractionCompleted, options: [.initial, .new]) { [weak self] progressObj, _ in
             guard let self else { return }
             DispatchQueue.main.async {
@@ -468,7 +473,11 @@ final class NWUpdateChecker {
                 if let label = self.progressLabel {
                     let clamped = max(0, min(1, fraction))
                     let percent = Int((clamped * 100).rounded())
-                    label.stringValue = "Downloading… \(percent)%"
+                    if clamped >= 1.0 {
+                        label.stringValue = "Finished downloading (\(percent)%)"
+                    } else {
+                        label.stringValue = "Downloading… \(percent)%"
+                    }
                 }
             }
         }

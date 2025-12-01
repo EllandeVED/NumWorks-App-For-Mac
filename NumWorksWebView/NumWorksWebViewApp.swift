@@ -76,6 +76,14 @@ extension KeyboardShortcuts.Name {
         return path.hasPrefix("/Applications/") || path.hasPrefix(NSHomeDirectory() + "/Applications/")
     }
 
+    /// When this launch argument is present, always run the auto-updater
+    /// even if the app bundle is not in an Applications folder.
+    /// Usage (in Xcode scheme or command line):
+    ///   --force-update-check-outside-applications
+    private var forceUpdateCheckOutsideApplications: Bool {
+        return CommandLine.arguments.contains("--force-update-check-outside-applications")
+    }
+
     private let status = StatusBarController()
 
     
@@ -163,9 +171,9 @@ extension KeyboardShortcuts.Name {
                     guard let self else { return }
                     self.maybePromptMoveToApplications()
 
-                    // Only schedule the update check when we are already in an Applications folder.
-                    // This avoids showing an update alert on the same run where the user might decide to move the app.
-                    if self.isInApplicationsFolder {
+                    // Normally only schedule the update check when we are already in an Applications folder.
+                    // If the special launch flag is present, force the updater even outside Applications.
+                    if self.isInApplicationsFolder || self.forceUpdateCheckOutsideApplications {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
                             NWUpdateChecker.shared.nwCheckOnLaunch()
                         }

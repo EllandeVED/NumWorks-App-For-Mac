@@ -186,6 +186,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.NumWorksWebView;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				STRIPFLAGS = "";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 			};
@@ -213,6 +214,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.NumWorksWebView;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				STRIPFLAGS = "";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 			};
