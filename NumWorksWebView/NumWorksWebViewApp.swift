@@ -551,16 +551,9 @@ extension KeyboardShortcuts.Name {
 
     // Relaunches the app from the given destination URL in /Applications
     private func relaunchFromApplications(at destinationURL: URL) {
-        let config = NSWorkspace.OpenConfiguration()
-        config.activates = true
-
-        NSWorkspace.shared.openApplication(at: destinationURL, configuration: config) { _, error in
-            if let error = error {
-                NSLog("Relaunch from Applications failed: \(error.localizedDescription)")
-                return
-            }
-            NSApp.terminate(nil)
-        }
+        NSLog("DEBUG: relaunchFromApplications → opening \(destinationURL.path)")
+        NSWorkspace.shared.open(destinationURL)
+        NSApp.terminate(nil)
     }
 
     private func maybePromptMoveToApplications() {
