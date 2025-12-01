@@ -3,9 +3,9 @@ import AppKit
 
 /// Simple “check GitHub Releases for a newer version” helper.
 @MainActor
-final class UpdateChecker {
+final class NWUpdateChecker {
 
-    static let shared = UpdateChecker()
+    static let shared = NWUpdateChecker()
 
     // Your repo
     private let owner = "EllandeVED"
@@ -22,13 +22,16 @@ final class UpdateChecker {
     // Prevent duplicate alerts during one run
     private var lastAlertedVersion: String?
 
+    // In-app download state (simple one-shot download)
+    private var activeDownloadTask: URLSessionDownloadTask?
+
     /// Call at launch. Silent on errors / up-to-date.
-    func checkOnLaunch() {
+    func nwCheckOnLaunch() {
         Task { [weak self] in
             guard let self else { return }
             do {
                 let remote = try await fetchLatest()
-                try handle(remote: remote, userInitiated: false)
+                try nwHandle(remote: remote, userInitiated: false)
             } catch {
                 // Quiet on launch; no-op
             }
@@ -36,14 +39,14 @@ final class UpdateChecker {
     }
 
     /// Call from Settings → “Check for Updates…”. Shows alerts for all outcomes.
-    func checkNow() {
+    func nwCheckNow() {
         Task { [weak self] in
             guard let self else { return }
             do {
                 let remote = try await fetchLatest()
-                try handle(remote: remote, userInitiated: true)
+                try nwHandle(remote: remote, userInitiated: true)
             } catch {
-                showNetworkErrorAlert(error)
+                nwShowNetworkErrorAlert(error)
             }
         }
     }
@@ -51,9 +54,15 @@ final class UpdateChecker {
     // MARK: - Impl
 
     private struct GitHubRelease: Decodable {
+        struct Asset: Decodable {
+            let name: String
+            let browser_download_url: String
+        }
+
         let tag_name: String
         let html_url: String?
         let body: String?
+        let assets: [Asset]?
     }
 
     private func fetchLatest() async throws -> GitHubRelease {
@@ -71,23 +80,38 @@ final class UpdateChecker {
         return try JSONDecoder().decode(GitHubRelease.self, from: data)
     }
 
-    private func handle(remote: GitHubRelease, userInitiated: Bool) throws {
+    private func nwHandle(remote: GitHubRelease, userInitiated: Bool) throws {
         let remoteTag = remote.tag_name
         let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
 
         if !userInitiated, lastAlertedVersion == remoteTag { return } // suppress only for auto/launch checks
 
-        if isRemote(remoteTag, newerThan: current) {
+        if nwIsRemote(remoteTag, newerThan: current) {
             lastAlertedVersion = remoteTag
             let notes = remote.body?.trimmingCharacters(in: .whitespacesAndNewlines)
-            showUpdateAlert(remoteTag: remoteTag, page: URL(string: remote.html_url ?? "") ?? releasesPage, notes: notes)
+
+            // Prefer a .zip asset if available
+            let directDownloadURL: URL?
+            if let asset = remote.assets?.first(where: { $0.name.lowercased().hasSuffix(".zip") }),
+               let url = URL(string: asset.browser_download_url) {
+                directDownloadURL = url
+            } else {
+                directDownloadURL = nil
+            }
+
+            nwShowUpdateAlert(
+                remoteTag: remoteTag,
+                page: URL(string: remote.html_url ?? "") ?? releasesPage,
+                directDownloadURL: directDownloadURL,
+                notes: notes
+            )
         } else if userInitiated {
-            showInfoAlert(title: "You’re Up To Date", text: "You have the latest version (\(current)).")
+            nwShowInfoAlert(title: "You’re Up To Date", text: "You have the latest version (\(current)).")
         }
     }
 
     /// Compare semantic versions
-    private func isRemote(_ remote: String, newerThan local: String) -> Bool {
+    private func nwIsRemote(_ remote: String, newerThan local: String) -> Bool {
         func parts(_ s: String) -> [Int] {
             s.trimmingCharacters(in: .whitespacesAndNewlines)
                 .trimmingCharacters(in: CharacterSet(charactersIn: "vV"))
@@ -141,9 +165,16 @@ final class UpdateChecker {
         return .systemFont(ofSize: size)
     }
 
+    private func formatByteCount(_ bytes: Int64) -> String {
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useKB, .useMB, .useGB]
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: bytes)
+    }
+
     // MARK: - Alerts
 
-    private func showUpdateAlert(remoteTag: String, page: URL, notes: String?) {
+    private func nwShowUpdateAlert(remoteTag: String, page: URL, directDownloadURL: URL?, notes: String?) {
         let alert = NSAlert()
         alert.messageText = "A New Version is Available"
         alert.informativeText = "Version \(remoteTag) is available. Would you like to download it?"
@@ -231,11 +262,107 @@ final class UpdateChecker {
         alert.accessoryView = container
 
         if alert.runModal() == .alertFirstButtonReturn {
-            NSWorkspace.shared.open(page)
+            // Prefer an in-app download if we have a direct ZIP asset; otherwise fall back to opening the release page in the browser.
+            if let direct = directDownloadURL {
+                let cleanTag = remoteTag.trimmingCharacters(in: CharacterSet(charactersIn: "vV"))
+                let suggestedName = "NumWorksWebView-\(cleanTag).zip"
+                nwDownloadAsset(from: direct, suggestedName: suggestedName)
+            } else {
+                NSWorkspace.shared.open(page)
+            }
         }
     }
+    
+    private func nwDownloadAsset(from url: URL, suggestedName: String = "NumWorksWebView.zip") {
+        // Cancel any previous download
+        activeDownloadTask?.cancel()
 
-    private func showInfoAlert(title: String, text: String) {
+        // Destination in ~/Downloads
+        let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first!
+        let dest = downloads.appendingPathComponent(suggestedName)
+
+        // Alert with an indeterminate progress indicator
+        let alert = NSAlert()
+        alert.messageText = "Downloading Update…"
+        alert.informativeText = "Please wait while the new version is being downloaded."
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "Cancel")
+
+        let indicator = NSProgressIndicator(frame: NSRect(x: 0, y: 0, width: 240, height: 18))
+        indicator.isIndeterminate = true
+        indicator.style = .spinning
+        indicator.startAnimation(nil)
+        alert.accessoryView = indicator
+
+        // Create the download task
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 60)
+        let task = URLSession.shared.downloadTask(with: request) { tempURL, response, error in
+            // Ensure UI updates happen on main thread
+            DispatchQueue.main.async {
+                // Close the alert window if it is visible
+                if let window = alert.window.sheetParent {
+                    window.endSheet(alert.window)
+                } else {
+                    alert.window.orderOut(nil)
+                }
+            }
+
+            // Handle cancellation or errors
+            if let error = error as? URLError, error.code == .cancelled {
+                return
+            }
+            if let error = error {
+                DispatchQueue.main.async {
+                    let errorAlert = NSAlert()
+                    errorAlert.messageText = "Download Failed"
+                    errorAlert.informativeText = "The update could not be downloaded.\n\nError: \(error.localizedDescription)"
+                    errorAlert.alertStyle = .warning
+                    errorAlert.addButton(withTitle: "OK")
+                    errorAlert.runModal()
+                }
+                return
+            }
+
+            guard let tempURL else { return }
+
+            do {
+                try? FileManager.default.removeItem(at: dest)
+                try FileManager.default.moveItem(at: tempURL, to: dest)
+
+                // Reveal in Finder
+                DispatchQueue.main.async {
+                    NSWorkspace.shared.activateFileViewerSelecting([dest])
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    let errorAlert = NSAlert()
+                    errorAlert.messageText = "Download Failed"
+                    errorAlert.informativeText = "The update could not be saved.\n\nError: \(error.localizedDescription)"
+                    errorAlert.alertStyle = .warning
+                    errorAlert.addButton(withTitle: "OK")
+                    errorAlert.runModal()
+                }
+            }
+        }
+
+        activeDownloadTask = task
+        task.resume()
+
+        // Present the alert as a sheet on the main window if possible; otherwise as a regular non-blocking alert.
+        if let window = NSApp.mainWindow ?? NSApp.keyWindow {
+            window.beginSheet(alert.window) { [weak self] response in
+                guard let self else { return }
+                if response == .alertFirstButtonReturn {
+                    self.activeDownloadTask?.cancel()
+                }
+                self.activeDownloadTask = nil
+            }
+        } else {
+            alert.window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+        }
+    }
+    private func nwShowInfoAlert(title: String, text: String) {
         let alert = NSAlert()
         alert.messageText = title
         alert.informativeText = text
@@ -244,7 +371,7 @@ final class UpdateChecker {
         alert.runModal()
     }
 
-    private func showNetworkErrorAlert(_ error: Error) {
+    private func nwShowNetworkErrorAlert(_ error: Error) {
         let ns = error as NSError
         let code = ns.code
         let domain = ns.domain
