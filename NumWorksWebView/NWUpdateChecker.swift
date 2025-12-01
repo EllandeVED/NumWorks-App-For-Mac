@@ -95,6 +95,8 @@ final class NWUpdateChecker {
 
         if nwIsRemote(remoteTag, newerThan: current) {
             lastAlertedVersion = remoteTag
+            // Signal the status bar to show an “update available” badge
+            NotificationCenter.default.post(name: .showUpdateBadge, object: nil)
             let notes = remote.body?.trimmingCharacters(in: .whitespacesAndNewlines)
 
             // Prefer a .zip asset if available
@@ -114,6 +116,7 @@ final class NWUpdateChecker {
             )
         } else if userInitiated {
             nwShowInfoAlert(title: "You’re Up To Date", text: "You have the latest version (\(current)).")
+            NotificationCenter.default.post(name: .hideUpdateBadge, object: nil)
         }
     }
 
