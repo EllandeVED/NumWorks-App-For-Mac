@@ -16,7 +16,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "1DTARGET"
-               BuildableName = "NumWorksWebView.app"
+               BuildableName = "NumWorks.app"
                BlueprintName = "NumWorksWebView"
                ReferencedContainer = "container:NumWorksWebView.xcodeproj">
             </BuildableReference>
@@ -45,7 +45,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "1DTARGET"
-            BuildableName = "NumWorksWebView.app"
+            BuildableName = "NumWorks.app"
             BlueprintName = "NumWorksWebView"
             ReferencedContainer = "container:NumWorksWebView.xcodeproj">
          </BuildableReference>
@@ -68,7 +68,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "1DTARGET"
-            BuildableName = "NumWorksWebView.app"
+            BuildableName = "NumWorks.app"
             BlueprintName = "NumWorksWebView"
             ReferencedContainer = "container:NumWorksWebView.xcodeproj">
          </BuildableReference>
