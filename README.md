@@ -22,8 +22,9 @@ And it has a setting panel where you can customise it (*See **INFO**)
 ## INSTALLATION INSTRUCTIONS:
 
 - **Required: MacOS 14.0**
+- Go to the latest release **[here](https://github.com/EllandeVED/NumWorks-App-For-Mac/releases/latest)**.
 - Download the .zip file from the releases
-- You will be faced with the following message when trying to open the app (because I don't have a registered develloper ID):
+- You will be faced with the following message when trying to open the app (because I don't have a registered developer ID):
 <img width="261" height="265" alt="image" src="https://github.com/user-attachments/assets/cc02b7e0-5220-4e7a-9ea5-d83e355945bb" />
 
 
