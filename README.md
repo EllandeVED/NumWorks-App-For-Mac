@@ -1,54 +1,83 @@
+
+
 <div align="center">
 
-<h1 style=font-size: 3rem; margin-bottom: 1.5rem;">
-NUMWORKS WEB VIEW APP FOR MAC
-</h1>
+# NUMWORKS WEB VIEW APP FOR MAC
 
 </div>
 
+A lightweight macOS application that wraps the official **NumWorks Web Calculator** into a native `.app`, providing a smooth, distraction-free experience on Mac.
 
+---
 
+## Preview
 
+<img width="315" height="611" alt="NumWorks App Preview" src="https://github.com/user-attachments/assets/054255dc-bfcb-4314-8de6-0241dce6d988" />
 
-Hi, this is a small .app that serves as a NumWorksApp for Mac.
-It looks like this:
+The app also includes a **settings panel** where you can customize its behavior  
+(see **INFO** below).
 
-<img width="315" height="611" alt="image" src="https://github.com/user-attachments/assets/054255dc-bfcb-4314-8de6-0241dce6d988" />
+---
 
-And it has a setting panel where you can customise it (*See **INFO**)
+## Installation
 
+### Requirements
+- **macOS 14.0 (Sonoma) or later**
 
+### Steps
+1. Go to the **latest release**:  
+   https://github.com/EllandeVED/NumWorks-App-For-Mac/releases/latest
 
-## INSTALLATION INSTRUCTIONS:
+2. Download the `.zip` file from the release page.
 
-- **Required: MacOS 14.0**
-- Go to the latest release **[here](https://github.com/EllandeVED/NumWorks-App-For-Mac/releases/latest)**.
-- Download the .zip file from the releases
-- You will be faced with the following message when trying to open the app (because I don't have a registered developer ID):
-<img width="261" height="265" alt="image" src="https://github.com/user-attachments/assets/cc02b7e0-5220-4e7a-9ea5-d83e355945bb" />
+3. Unzip it and try to open the app.  
+   You will see the following warning (the app is not signed with a paid Apple Developer ID):
 
+   <img width="261" height="265" alt="Security Warning" src="https://github.com/user-attachments/assets/cc02b7e0-5220-4e7a-9ea5-d83e355945bb" />
 
-- Go to **"Privacy and Security"** and click on **"open anyway"**
-<img width="737" height="648" alt="image" src="https://github.com/user-attachments/assets/a2b2fa2f-db6a-49ec-b6ae-9c7ad19b583e" />
+4. Open **System Settings → Privacy & Security**, then click **“Open Anyway”**:
 
-- Move the app to your application folder (optional) and you are all set!
+   <img width="737" height="648" alt="Open Anyway" src="https://github.com/user-attachments/assets/a2b2fa2f-db6a-49ec-b6ae-9c7ad19b583e" />
 
+5. (Optional but recommended) Move the app to your **Applications** folder.
 
+The app is now ready to use.
 
-## UPDATES:
+---
 
-- Follow in-app instructions
-- Make to have your app inside the application folder for auto-updates to work without any trouble
+## Updates
 
+- Updates are handled **inside the app**
+- For auto-updates to work properly, the app **must be located in the Applications folder**
 
+---
 
-## INFO:
+## Info & Usage Notes
 
-- You need internet at least once to load the calculator after you launch it. It will stay loaded until you turn off your computer (working on an offline version)
-- To access the settings (1) of the app, right click on the menu bar icon
-- To access the settings (2) of the app, go on the top left of you screen in **"NumWorksApp"** and then go in **"Settings"**:
-<img width="357" height="308" alt="image" src="https://github.com/user-attachments/assets/cbd895cd-71b2-44a3-8bd5-2d7047f08399" />
+- The app requires an **internet connection at least once** on first launch to load the calculator  
+  (offline support is planned)
+- Once loaded, the calculator stays available until you shut down your Mac
 
+### Accessing the Settings
 
+You can open the settings panel in two ways:
 
+1. **Right-click** the menu bar icon  
+2. From the macOS menu bar:  
+   **NumWorksApp → Settings**
 
+<img width="357" height="308" alt="Settings Menu" src="https://github.com/user-attachments/assets/cbd895cd-71b2-44a3-8bd5-2d7047f08399" />
+
+---
+
+## Disclaimer
+
+This project is **not affiliated with NumWorks**.  
+It simply embeds the official NumWorks web calculator into a macOS app for convenience.
+
+---
+
+## Contributing & Feedback
+
+Issues, suggestions, and pull requests are welcome.  
+If you find this app useful, feel free to star the repository.
