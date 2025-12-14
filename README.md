@@ -7,7 +7,7 @@
 
 </div>
 
-A lightweight macOS application that wraps the official **NumWorks Web Calculator** into a native `.app`, providing a smooth, distraction-free experience on Mac.
+A lightweight macOS application that wraps the official **NumWorks Web Calculator** into a native `.app`, providing a smooth,MacOS integrated experience.
 
 ---
 
